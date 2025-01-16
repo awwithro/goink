@@ -10,20 +10,25 @@ import (
 
 type Container struct {
 	ParentContainer *Container
-	Contents        []any
+	Contents        []Acceptor
 	Name            string
 	Flag            byte
 	SubContainers   map[string]*Container
 }
 
-func NewContainer(name string, parent *Container) Container {
-	c := Container{
+func NewContainer(name string, parent *Container) *Container {
+	c := &Container{
 		Name:            name,
 		SubContainers:   map[string]*Container{},
 		ParentContainer: parent,
 	}
 	return c
 }
+
+func (c *Container) Accept(v Visitor) {
+	v.VisitContainer(c)
+}
+
 func (c *Container) UnmarshalJSON(p []byte) error {
 	var raw []any
 	if err := json.Unmarshal(p, &raw); err != nil {
@@ -36,7 +41,7 @@ func (c *Container) UnmarshalJSON(p []byte) error {
 func (c *Container) unmarshalString(str string) error {
 	if strings.HasPrefix(str, "^") || str == "\n" {
 		c.Contents = append(c.Contents,
-			StringVal(strings.TrimPrefix("^", str)))
+			StringVal(strings.TrimPrefix(str, "^")))
 	} else if cmd, ok := IsControlCommand(str); ok {
 		c.Contents = append(c.Contents, cmd)
 	}
@@ -55,7 +60,7 @@ func (c *Container) unmarshalContainer(cnt []any) error {
 		case []any:
 			subContainer := NewContainer("", c)
 			subContainer.unmarshalContainer(typ)
-			c.Contents = append(c.Contents, &subContainer)
+			c.Contents = append(c.Contents, subContainer)
 		case string:
 			c.unmarshalString(typ)
 		case int:
@@ -85,7 +90,7 @@ func (c *Container) parseFinalElement(obj map[string]any) {
 			if cnt, ok := v.([]any); ok {
 				subContainer := NewContainer(k, c)
 				subContainer.unmarshalContainer(cnt)
-				c.SubContainers[k] = &subContainer
+				c.SubContainers[k] = subContainer
 			} else {
 				logrus.Panic("Unrecognized Final Element ", k, v)
 			}
@@ -231,6 +236,32 @@ func (c *Container) GetNamedContainer(name string) (*Container, error) {
 		}
 	}
 	return nil, NoNamedContainer(fmt.Errorf("no container named %s found", name))
+}
+
+func (c *Container) GetRoot() *Container {
+	cnt := c
+	for {
+		if cnt.ParentContainer == nil {
+			return cnt
+		}
+		cnt = cnt.ParentContainer
+	}
+}
+
+func (c *Container) PositionInParent() (int, error) {
+	// TODO: What if this is a sub-container?
+	if c.ParentContainer != nil {
+		for x := 0; x < len(c.ParentContainer.Contents); x++ {
+			obj := c.ParentContainer.Contents[x]
+			if cnt, ok := obj.(*Container); ok {
+				if cnt == c {
+					return x, nil
+				}
+			}
+		}
+		logrus.Panic("container not found in parent")
+	}
+	return -1, fmt.Errorf("no Parent")
 }
 
 type NoNamedContainer error

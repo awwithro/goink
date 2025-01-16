@@ -5,7 +5,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/sirupsen/logrus"
+	log "github.com/sirupsen/logrus"
 )
 
 const (
@@ -38,10 +38,11 @@ func (p Path) Segments() []Segment {
 	return segments
 }
 
-func ResolvePath(p Path, root, current *Container) *Container {
+func ResolvePath(p Path, current *Container) *Container {
+	root := current.GetRoot()
 	segs := p.Segments()
 	// starts with an address
-	if segs[0].IsAddr {
+	if segs[0].IsAddr || segs[0].Name != ParentContainer {
 		cnt := root
 		for _, seg := range segs {
 			if seg.IsAddr {
@@ -49,24 +50,40 @@ func ResolvePath(p Path, root, current *Container) *Container {
 				if c, ok := x.(*Container); ok {
 					cnt = c
 				} else {
-					logrus.Panicf("Address container non container element %v", reflect.TypeOf(x))
+					log.Panicf("Address container non container element %v", reflect.TypeOf(x))
 				}
 			} else {
 				c, err := cnt.GetNamedContainer(seg.Name)
 				if err != nil {
-					logrus.Panic(err)
+					log.Panic(err)
 				}
 				cnt = c
 			}
 		}
 		return cnt
 		// starts with '^' ie a local ref
-	} else if segs[0].Name == ParentContainer {
-		ct, err := current.GetNamedContainer(segs[1].Name)
-		if err != nil {
-			panic(err)
+	} else {
+		checkedCurrent := false
+		for _, seg := range segs {
+			if seg.IsAddr {
+				ct := current.Contents[seg.Addr]
+				c := ct.(*Container)
+				return c
+			} else if seg.Name != ParentContainer {
+				ct, err := current.GetNamedContainer(seg.Name)
+				if err != nil {
+					log.Panic(err)
+				}
+				return ct
+			} else {
+				if !checkedCurrent {
+					checkedCurrent = true
+				} else {
+					current = current.ParentContainer
+				}
+			}
 		}
-		return ct
+
 	}
-	return nil
+	panic("shouldn't be here")
 }

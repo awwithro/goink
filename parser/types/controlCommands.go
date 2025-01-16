@@ -48,3 +48,7 @@ func IsControlCommand(str string) (ControlCommand, bool) {
 	c, ok := controlCommandMap[str]
 	return c, ok
 }
+
+func (c ControlCommand) Accept(v Visitor) {
+	v.VisitControlCommand(c)
+}

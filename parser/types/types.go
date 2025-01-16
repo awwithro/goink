@@ -10,14 +10,29 @@ type StringVal string
 func (s StringVal) String() string {
 	return string(s)
 }
+func (s StringVal) Accept(v Visitor) {
+	v.VisitString(s)
+}
 
 type IntVal int
+
+func (i IntVal) Accept(v Visitor) {
+	//v.VisitNumber(i)
+	panic("not implemented")
+}
+
 type FloatVal float64
+
+func (f FloatVal) Accept(v Visitor) {
+	//v.VisitNumber(f)
+	panic("not implemented")
+}
 
 type NumericVal interface {
 	IsFloat() bool
 	AsInt() int
 	AsFloat() float64
+	AsBool() bool
 }
 
 func (i IntVal) IsFloat() bool {
@@ -29,6 +44,9 @@ func (i IntVal) AsInt() int {
 func (i IntVal) AsFloat() float64 {
 	return float64(i)
 }
+func (i IntVal) AsBool() bool {
+	return i != 0
+}
 
 func (f FloatVal) IsFloat() bool {
 	return true
@@ -39,12 +57,23 @@ func (f FloatVal) AsInt() int {
 func (f FloatVal) AsFloat() float64 {
 	return float64(f)
 }
+func (i FloatVal) AsBool() bool {
+	return i != 0
+}
 
 type DivertTarget Path
+
+func (d DivertTarget) Accept(v Visitor) {
+	v.VisitDivertTarget(d)
+}
 
 type Divert struct {
 	Path        Path
 	Conditional bool
+}
+
+func (d Divert) Accept(v Visitor) {
+	v.VisitDivert(d)
 }
 
 type VariableDivert struct {
@@ -52,14 +81,28 @@ type VariableDivert struct {
 	Conditional bool
 }
 
+func (d VariableDivert) Accept(v Visitor) {
+	v.VisitVariableDivert(d)
+}
+
 type FunctionDivert struct {
 	Path        Path
 	Conditional bool
 }
 
+func (f FunctionDivert) Accept(v Visitor) {
+	//v.VisitFunction(d)
+	panic("not implemented")
+}
+
 type TunnelDivert struct {
 	Path        Path
 	Conditional bool
+}
+
+func (t TunnelDivert) Accept(v Visitor) {
+	//v.TunnelDivert(d)
+	panic("not implemented")
 }
 
 type ExternalFunctionDivert struct {
@@ -68,9 +111,18 @@ type ExternalFunctionDivert struct {
 	Conditional bool
 }
 
+func (e ExternalFunctionDivert) Accept(v Visitor) {
+	//v.ExternalFunctionDivert(d)
+	panic("not implemented")
+}
+
 type ChoicePoint struct {
 	Path Path
 	Flag byte
+}
+
+func (c ChoicePoint) Accept(v Visitor) {
+	v.VisitChoicePoint(c)
 }
 
 func (c *ChoicePoint) HasCondition() bool {
@@ -82,7 +134,7 @@ func (c *ChoicePoint) HasStartContent() bool {
 func (c *ChoicePoint) HasChoiceOnly() bool {
 	return c.Flag&0x4 == 0x4
 }
-func (c *ChoicePoint) IsInvisible() bool {
+func (c *ChoicePoint) IsInvisibleDefault() bool {
 	return c.Flag&0x8 == 0x8
 }
 func (c *ChoicePoint) OnceOnly() bool {
@@ -91,11 +143,26 @@ func (c *ChoicePoint) OnceOnly() bool {
 
 type ReadCount string
 
+func (r ReadCount) Accept(v Visitor) {
+	//v.VisitReadCount(r)
+	panic("not implemented")
+}
+
 type VarRef string
+
+func (vr VarRef) Accept(v Visitor) {
+	//v.VarRef(vr)
+	panic("not implemented")
+}
 
 type GlobalVar struct {
 	Name     string
 	ReAssign bool
+}
+
+func (g GlobalVar) Accept(v Visitor) {
+	//v.VisitGlobalVar(g)
+	panic("not implemented")
 }
 
 type TempVar struct {
@@ -103,9 +170,18 @@ type TempVar struct {
 	ReAssign bool
 }
 
+func (t TempVar) Accept(v Visitor) {
+	v.VisitTmpVar(t)
+}
+
 type VariablePointer struct {
 	Name         string
 	ContextIndex int
+}
+
+func (p VariablePointer) Accept(v Visitor) {
+	//v.VisitVariablePointer(p)
+	panic("not implemented")
 }
 
 func NewVariablePointer(name string) VariablePointer {
