@@ -11,6 +11,24 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
+// Index of a container
+type Address struct {
+	C *types.Container
+	I int
+}
+
+func (a Address) AtEnd() bool {
+	return a.I >= len(a.C.Contents)
+}
+
+func (a *Address) Set(c *types.Container, i int) {
+	a.C = c
+	a.I = i
+}
+func (a *Address) Increment() {
+	a.I++
+}
+
 type Story struct {
 	ink             types.Ink
 	evaluationStack stacks.Stack[any]
@@ -19,9 +37,8 @@ type Story struct {
 	stringMarker    int //Used to track index of stack to concatenate into a string
 	state           *StoryState
 	// Where in the ink we're located
-	currentContainer *types.Container
-	currentIdx       int
-	Finished         bool
+	currentAddress Address
+	Finished       bool
 }
 
 func NewStory(ink types.Ink) Story {
@@ -116,7 +133,7 @@ func mustPopNumeric(s stacks.Stack[any]) types.NumericVal {
 }
 
 func (s *Story) ResolvePath(p types.Path) (*types.Container, int) {
-	return types.ResolvePath(p, s.currentContainer)
+	return types.ResolvePath(p, s.currentAddress.C)
 }
 
 func (s *Story) Step() (StoryState, error) {
@@ -138,24 +155,22 @@ func (s *Story) Step() (StoryState, error) {
 
 func (s *Story) reEnterStory() {
 	s.state.setDone(false)
-	// Reached the end of the current container
-	if s.currentIdx >= len(s.currentContainer.Contents) {
-		log.Debug("Reached end of Container: ", s.currentContainer.Name)
+	if s.currentAddress.AtEnd() {
+		log.Debug("Reached end of Container: ", s.currentAddress.C.Name)
 		// End of the story
-		if pos, err := s.currentContainer.PositionInParent(); err != nil {
+		if pos, err := s.currentAddress.C.PositionInParent(); err != nil {
 			log.Debug("reached end of ink ", err)
 			s.endStory()
 		} else {
 			// pick up at the position just after the container we left
-			s.currentContainer = s.currentContainer.ParentContainer
-			s.currentIdx = pos + 1
+			s.currentAddress.Set(s.currentAddress.C.ParentContainer, pos+1)
 			s.reEnterStory()
 		}
 		return
 	} else {
-		log.Debugf("Entering idx %d of Container: %v", s.currentIdx, s.currentContainer.Name)
-		log.Debugf("Item is %q, %s", s.currentContainer.Contents[s.currentIdx], reflect.TypeOf(s.currentContainer.Contents[s.currentIdx]))
-		s.currentContainer.Contents[s.currentIdx].Accept(s)
+		log.Debugf("Entering idx %d of Container: %v", s.currentAddress.I, s.currentAddress.C.Name)
+		log.Debugf("Item is %q, %s", s.currentAddress.C.Contents[s.currentAddress.I], reflect.TypeOf(s.currentAddress.C.Contents[s.currentAddress.I]))
+		s.currentAddress.C.Contents[s.currentAddress.I].Accept(s)
 	}
 }
 
@@ -181,8 +196,7 @@ func (s *Story) choose(c Choice) {
 }
 
 func (s *Story) enterContainer(c *types.Container, idx int) {
-	s.currentContainer = c
-	s.currentIdx = idx
+	s.currentAddress.Set(c, idx)
 	s.state.RecordContainer(c, idx)
 }
 

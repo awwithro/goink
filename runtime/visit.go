@@ -14,7 +14,7 @@ func (s *Story) VisitString(str types.StringVal) {
 		log.Panicf("String encountered while in Eval mode: %s", str)
 	}
 	s.outputBuffer.Push(str.String())
-	s.currentIdx++
+	s.currentAddress.Increment()
 }
 func (s *Story) VisitControlCommand(cmd types.ControlCommand) {
 	log.Debug("Visiting Control Command: ", cmd)
@@ -39,7 +39,7 @@ func (s *Story) VisitControlCommand(cmd types.ControlCommand) {
 	default:
 		log.Panic("Unimplemented Command! ", cmd)
 	}
-	s.currentIdx++
+	s.currentAddress.Increment()
 }
 
 func (s *Story) VisitTmpVar(v types.TempVar) {
@@ -52,12 +52,12 @@ func (s *Story) VisitTmpVar(v types.TempVar) {
 	default:
 		log.Panic("don't know how to set tmp var to ", reflect.TypeOf(val))
 	}
-	s.currentIdx++
+	s.currentAddress.Increment()
 }
 
 func (s *Story) VisitDivertTarget(divert types.DivertTarget) {
 	s.evaluationStack.Push(divert)
-	s.currentIdx++
+	s.currentAddress.Increment()
 }
 
 func (s *Story) VisitDivert(divert types.Divert) {
@@ -71,7 +71,7 @@ func (s *Story) VisitDivert(divert types.Divert) {
 			} else {
 				log.Debug("Conditional divert failed")
 				// If we don't divert, advance the index
-				s.currentIdx++
+				s.currentAddress.Increment()
 				return
 			}
 		default:
@@ -127,7 +127,7 @@ func (s *Story) VisitChoicePoint(p types.ChoicePoint) {
 		choice.OnlyDefault = true
 	}
 	s.state.CurrentChoices = append(s.state.CurrentChoices, choice)
-	s.currentIdx++
+	s.currentAddress.Increment()
 }
 
 func (s *Story) VisitContainer(c *types.Container) {
@@ -145,7 +145,7 @@ func (s *Story) VisitFloatVal(f types.FloatVal) {
 
 func (s *Story) visitNumber(i types.NumericVal) {
 	s.evaluationStack.Push(i)
-	s.currentIdx++
+	s.currentAddress.Increment()
 }
 
 func (s *Story) VisitFloatBoolVal(f types.FloatVal) {
@@ -154,14 +154,14 @@ func (s *Story) VisitFloatBoolVal(f types.FloatVal) {
 
 func (s *Story) VisitBoolVal(b types.BoolVal) {
 	s.evaluationStack.Push(b)
-	s.currentIdx++
+	s.currentAddress.Increment()
 }
 
 func (s *Story) VisitGlobalVar(v types.GlobalVar) {
 	log.Debug("Visiting Global Var ", v.Name)
 	val := mustPopStack(s.evaluationStack)
 	s.state.globalVars[v.Name] = val
-	s.currentIdx++
+	s.currentAddress.Increment()
 }
 
 func (s *Story) VisitVarRef(v types.VarRef) {
@@ -175,5 +175,5 @@ func (s *Story) VisitVarRef(v types.VarRef) {
 	}
 	log.Debugf("Pushing val %v", val)
 	s.evaluationStack.Push(val)
-	s.currentIdx++
+	s.currentAddress.Increment()
 }

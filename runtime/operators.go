@@ -56,7 +56,7 @@ func (s *Story) VisitOperator(op types.Operator) {
 		}
 
 	}
-	s.currentIdx++
+	s.currentAddress.Increment()
 }
 
 func binaryOperator(x, y types.NumericVal, f func(x, y float64) float64) types.NumericVal {
