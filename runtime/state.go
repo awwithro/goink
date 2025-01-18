@@ -54,15 +54,14 @@ func (c Choice) storyText() string {
 	return c.text
 }
 
-func (s *StoryState) RecordContainer(c *types.Container) {
+func (s *StoryState) RecordContainer(c *types.Container, idx int) {
 	if c.RecordVisits() {
-		s.visitCounts[c] += 1
+		if !c.CountStartOnly() || idx == 0 {
+			s.visitCounts[c] += 1
+		}
 	}
 	if c.RecordTurns() {
 		s.lastTurn[c] = s.TurnCount
-	}
-	if c.CountStartOnly() {
-		logrus.Warn("CountStartOnly entry not implemented yet")
 	}
 }
 
@@ -73,8 +72,8 @@ func (s *StoryState) setDone(x bool) {
 func (s *StoryState) CanContinue() bool {
 	if len(s.CurrentChoices) > 0 && s.done {
 		return false
-	} else if s.done && len(s.CurrentChoices) == 0 {
-		return false
+	// } else if s.done && len(s.CurrentChoices) == 0 {
+	// 	return false
 	}
 	return true
 }

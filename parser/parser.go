@@ -4,13 +4,15 @@ import (
 	"encoding/json"
 
 	"github.com/awwithro/goink/parser/types"
-	"github.com/sirupsen/logrus"
 )
 
 func Parse(rawJson []byte) types.Ink {
-	i := &types.Ink{}
+	c := types.NewContainer("", nil)
+	i := &types.Ink{
+		Root: *c,
+	}
 	if err := json.Unmarshal(rawJson, i); err != nil {
-		logrus.Panic(err)
+		panic(err)
 	}
 	return *i
 }

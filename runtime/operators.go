@@ -4,11 +4,14 @@ import (
 	"math"
 
 	"github.com/awwithro/goink/parser/types"
+	log "github.com/sirupsen/logrus"
 )
 
 func (s *Story) VisitOperator(op types.Operator) {
+	log.Debugf("Visiting Operator: %d", op)
 	if op.IsUnary() {
 		val := mustPopNumeric(s.evaluationStack)
+		log.Debug("Operating on ", val)
 		switch op {
 		case types.Negate:
 			s.evaluationStack.Push(unaryOperator(val, negate))
@@ -18,6 +21,7 @@ func (s *Story) VisitOperator(op types.Operator) {
 	} else {
 		val2 := mustPopNumeric(s.evaluationStack)
 		val1 := mustPopNumeric(s.evaluationStack)
+		log.Debug("Operating on ", val1, val2)
 		switch op {
 		case types.Plus:
 			s.evaluationStack.Push(binaryOperator(val1, val2, add))
@@ -52,7 +56,7 @@ func (s *Story) VisitOperator(op types.Operator) {
 		}
 
 	}
-
+	s.currentIdx++
 }
 
 func binaryOperator(x, y types.NumericVal, f func(x, y float64) float64) types.NumericVal {

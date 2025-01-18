@@ -94,7 +94,7 @@ func panicInvalidStackType(expected any, actual any) {
 }
 
 func (s *Story) Start() {
-	s.enterContainer(s.ink.Root.Contents[0].(*types.Container))
+	s.enterContainer(s.ink.Root.Contents[0].(*types.Container), 0)
 }
 
 func mustPopStack(s stacks.Stack[any]) any {
@@ -102,6 +102,7 @@ func mustPopStack(s stacks.Stack[any]) any {
 	if !ok {
 		log.Panic("Popped empty stack")
 	}
+	log.Debug("Popped ", val)
 	return val
 }
 
@@ -114,18 +115,21 @@ func mustPopNumeric(s stacks.Stack[any]) types.NumericVal {
 	return num
 }
 
-func (s *Story) ResolvePath(p types.Path) *types.Container {
+func (s *Story) ResolvePath(p types.Path) (*types.Container, int) {
 	return types.ResolvePath(p, s.currentContainer)
 }
 
 func (s *Story) Step() (StoryState, error) {
 	if s.state.CanContinue() {
+		// flush any already presented text
+		s.state.text = ""
 		s.reEnterStory()
-		if s.state.done && len(s.state.CurrentChoices) > 0 {
+		// if a choice is needed after taking a step, send text to the state
+		if !s.state.CanContinue() {
 			s.writeToState()
 		}
-	} else if s.state.done && len(s.state.CurrentChoices) == 0 {
-		s.endStory()
+		// } else if s.state.done && len(s.state.CurrentChoices) == 0 {
+		// 	s.endStory()
 	} else {
 		return *s.state, fmt.Errorf("can't continue")
 	}
@@ -136,8 +140,10 @@ func (s *Story) reEnterStory() {
 	s.state.setDone(false)
 	// Reached the end of the current container
 	if s.currentIdx >= len(s.currentContainer.Contents) {
+		log.Debug("Reached end of Container: ", s.currentContainer.Name)
 		// End of the story
 		if pos, err := s.currentContainer.PositionInParent(); err != nil {
+			log.Debug("reached end of ink ", err)
 			s.endStory()
 		} else {
 			// pick up at the position just after the container we left
@@ -154,27 +160,30 @@ func (s *Story) reEnterStory() {
 }
 
 func (s *Story) endStory() {
+	log.Debug("Ending Story")
+	s.state.text = ""
 	s.writeToState()
 	s.Finished = true
+	s.state.done = true
 }
 
 func (s *Story) moveToPath(path types.Path) {
-	target := s.ResolvePath(path)
-	s.enterContainer(target)
+	target, idx := s.ResolvePath(path)
+	s.enterContainer(target, idx)
 }
 
 func (s *Story) choose(c Choice) {
-	cnt := s.ResolvePath(c.Destination)
-	s.enterContainer(cnt)
+	cnt, idx := s.ResolvePath(c.Destination)
+	s.enterContainer(cnt, idx)
 	s.state.TurnCount++
 	s.state.CurrentChoices = s.state.CurrentChoices[:0]
 	s.state.setDone(false)
 }
 
-func (s *Story) enterContainer(c *types.Container) {
+func (s *Story) enterContainer(c *types.Container, idx int) {
 	s.currentContainer = c
-	s.currentIdx = 0
-	s.state.RecordContainer(c)
+	s.currentIdx = idx
+	s.state.RecordContainer(c, idx)
 }
 
 func (s *Story) ChoseIndex(idx int) error {

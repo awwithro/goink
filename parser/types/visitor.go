@@ -10,6 +10,11 @@ type Visitor interface {
 	VisitTmpVar(TempVar)
 	VisitOperator(Operator)
 	VisitChoicePoint(ChoicePoint)
+	VisitIntVal(IntVal)
+	VisitFloatVal(FloatVal)
+	VisitBoolVal(BoolVal)
+	VisitGlobalVar(GlobalVar)
+	VisitVarRef(VarRef)
 }
 
 type Acceptor interface {

@@ -33,6 +33,8 @@ func (s *Story) VisitControlCommand(cmd types.ControlCommand) {
 		_ = mustPopStack(s.evaluationStack)
 	case types.Done:
 		s.state.setDone(true)
+	case types.End:
+		s.endStory()
 	case types.NoOp:
 	default:
 		log.Panic("Unimplemented Command! ", cmd)
@@ -59,10 +61,29 @@ func (s *Story) VisitDivertTarget(divert types.DivertTarget) {
 }
 
 func (s *Story) VisitDivert(divert types.Divert) {
+	if divert.Conditional {
+		item := mustPopStack(s.evaluationStack)
+		switch ok := item.(type) {
+		case bool:
+			if ok {
+				s.moveToPath(divert.Path)
+				return
+			} else {
+				log.Debug("Conditional divert failed")
+				// If we don't divert, advance the index
+				s.currentIdx++
+				return
+			}
+		default:
+			panicInvalidStackType(true, ok)
+		}
+	}
 	s.moveToPath(divert.Path)
+
 }
 
 func (s *Story) VisitVariableDivert(divert types.VariableDivert) {
+	log.Debug("Visit Variable Divert ", divert.Name)
 	p := s.state.GetVar(divert.Name)
 	if path, ok := p.(types.Path); ok {
 		s.moveToPath(path)
@@ -72,6 +93,7 @@ func (s *Story) VisitVariableDivert(divert types.VariableDivert) {
 }
 
 func (s *Story) VisitChoicePoint(p types.ChoicePoint) {
+	log.Debug("Visit Choice Point ", p.Path)
 	if p.HasCondition() {
 		x := mustPopNumeric(s.evaluationStack)
 		if !x.AsBool() {
@@ -80,7 +102,7 @@ func (s *Story) VisitChoicePoint(p types.ChoicePoint) {
 	}
 	choice := Choice{Destination: p.Path}
 	if p.OnceOnly() {
-		cnt := s.ResolvePath(p.Path)
+		cnt, _ := s.ResolvePath(p.Path)
 		if s.state.visitCounts[cnt] > 0 {
 			return
 		}
@@ -110,6 +132,48 @@ func (s *Story) VisitChoicePoint(p types.ChoicePoint) {
 
 func (s *Story) VisitContainer(c *types.Container) {
 	log.Debug("Visiting Container: ", c.Name)
-	s.enterContainer(c)
+	s.enterContainer(c, 0)
 	// no advance needed
+}
+
+func (s *Story) VisitIntVal(i types.IntVal) {
+	s.visitNumber(i)
+}
+func (s *Story) VisitFloatVal(f types.FloatVal) {
+	s.visitNumber(f)
+}
+
+func (s *Story) visitNumber(i types.NumericVal) {
+	s.evaluationStack.Push(i)
+	s.currentIdx++
+}
+
+func (s *Story) VisitFloatBoolVal(f types.FloatVal) {
+	s.visitNumber(f)
+}
+
+func (s *Story) VisitBoolVal(b types.BoolVal) {
+	s.evaluationStack.Push(b)
+	s.currentIdx++
+}
+
+func (s *Story) VisitGlobalVar(v types.GlobalVar) {
+	log.Debug("Visiting Global Var ", v.Name)
+	val := mustPopStack(s.evaluationStack)
+	s.state.globalVars[v.Name] = val
+	s.currentIdx++
+}
+
+func (s *Story) VisitVarRef(v types.VarRef) {
+	log.Debug("Visiting Var Ref ", v)
+	var val any
+	var ok bool
+	if val, ok = s.state.tmpVars[string(v)]; ok {
+	} else if val, ok = s.state.globalVars[string(v)]; ok {
+	} else {
+		val = false
+	}
+	log.Debugf("Pushing val %v", val)
+	s.evaluationStack.Push(val)
+	s.currentIdx++
 }

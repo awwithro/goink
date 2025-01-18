@@ -1,8 +1,15 @@
 package types
 
+import "strconv"
+
 type Ink struct {
 	InkVersion int       `json:"inkVersion"`
 	Root       Container `json:"root"`
+}
+type BoolVal bool
+
+func (b BoolVal) Accept(v Visitor) {
+	v.VisitBoolVal(b)
 }
 
 type StringVal string
@@ -17,15 +24,19 @@ func (s StringVal) Accept(v Visitor) {
 type IntVal int
 
 func (i IntVal) Accept(v Visitor) {
-	//v.VisitNumber(i)
-	panic("not implemented")
+	v.VisitIntVal(i)
+}
+func (i IntVal) String() string {
+	return strconv.Itoa(int(i))
 }
 
 type FloatVal float64
 
 func (f FloatVal) Accept(v Visitor) {
-	//v.VisitNumber(f)
-	panic("not implemented")
+	v.VisitFloatVal(f)
+}
+func (f FloatVal) String() string {
+	return strconv.FormatFloat(float64(f), 'f', -1, 64)
 }
 
 type NumericVal interface {
@@ -151,8 +162,7 @@ func (r ReadCount) Accept(v Visitor) {
 type VarRef string
 
 func (vr VarRef) Accept(v Visitor) {
-	//v.VarRef(vr)
-	panic("not implemented")
+	v.VisitVarRef(vr)
 }
 
 type GlobalVar struct {
@@ -161,8 +171,7 @@ type GlobalVar struct {
 }
 
 func (g GlobalVar) Accept(v Visitor) {
-	//v.VisitGlobalVar(g)
-	panic("not implemented")
+	v.VisitGlobalVar(g)
 }
 
 type TempVar struct {

@@ -50,3 +50,7 @@ func IsOperator(str string) (Operator, bool) {
 	c, ok := operatorMap[str]
 	return c, ok
 }
+
+func (o Operator) Accept(v Visitor) {
+	v.VisitOperator(o)
+}

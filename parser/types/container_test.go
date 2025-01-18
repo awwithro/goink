@@ -50,6 +50,7 @@ func TestResolvePath(t *testing.T) {
 		StringVal("String"),
 		foo,
 		bar,
+		NoOp,
 	}
 	root.Contents = []Acceptor{
 		c,
@@ -60,45 +61,53 @@ func TestResolvePath(t *testing.T) {
 		path             Path
 		rootContainer    *Container
 		currentContainer *Container
-		expected         *Container
+		expectedC        *Container
+		expectedIdx      int
 		panics           bool
 	}{
 		{
 			desc:             "Parent Lookup",
 			path:             ".^.Foo",
 			currentContainer: c,
-			expected:         foo,
+			expectedC:        foo,
 		},
 		{
 			desc:             "Address Lookup",
 			path:             "0.1",
 			currentContainer: c,
-			expected:         foo,
+			expectedC:        foo,
 		},
 		{
 			desc:             "Mixed address and Name Lookup",
 			path:             "0.2.Baz",
 			currentContainer: c,
-			expected:         baz,
+			expectedC:        baz,
 		},
 		{
 			desc:             "Failed lookup",
 			path:             "1.9.Florb",
 			currentContainer: c,
-			expected:         nil,
+			expectedC:        nil,
 			panics:           true,
 		},
 		{
 			desc:             "Multiple Parent Refs",
 			path:             ".^.^.^.Foo",
 			currentContainer: baz,
-			expected:         foo,
+			expectedC:        foo,
 		},
 		{
 			desc:             "Multiple Parent Refs and addrs",
 			path:             ".^.^.^.^.0",
 			currentContainer: baz,
-			expected:         c,
+			expectedC:        c,
+		},
+		{
+			desc:             "Arbitrary Content",
+			path:             "Start.3",
+			currentContainer: baz,
+			expectedC:        c,
+			expectedIdx:      3,
 		},
 	}
 	for _, tC := range testCases {
@@ -109,8 +118,9 @@ func TestResolvePath(t *testing.T) {
 					ResolvePath(tC.path, tC.currentContainer)
 				})
 			} else {
-				actual := ResolvePath(tC.path, tC.currentContainer)
-				assert.Equal(tC.expected.Name, actual.Name)
+				actualC, actualIdx := ResolvePath(tC.path, tC.currentContainer)
+				assert.Equal(tC.expectedC.Name, actualC.Name)
+				assert.Equal(tC.expectedIdx, actualIdx)
 			}
 		})
 	}

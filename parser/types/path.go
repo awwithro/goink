@@ -1,7 +1,6 @@
 package types
 
 import (
-	"reflect"
 	"strconv"
 	"strings"
 
@@ -38,7 +37,9 @@ func (p Path) Segments() []Segment {
 	return segments
 }
 
-func ResolvePath(p Path, current *Container) *Container {
+// Resolves to a container and the index of the contents
+func ResolvePath(p Path, current *Container) (*Container, int) {
+	var idx int
 	root := current.GetRoot()
 	segs := p.Segments()
 	// starts with an address
@@ -49,8 +50,9 @@ func ResolvePath(p Path, current *Container) *Container {
 				x := cnt.Contents[seg.Addr]
 				if c, ok := x.(*Container); ok {
 					cnt = c
+					idx = 0
 				} else {
-					log.Panicf("Address container non container element %v", reflect.TypeOf(x))
+					idx = seg.Addr
 				}
 			} else {
 				c, err := cnt.GetNamedContainer(seg.Name)
@@ -58,23 +60,27 @@ func ResolvePath(p Path, current *Container) *Container {
 					log.Panic(err)
 				}
 				cnt = c
+				idx = 0
 			}
 		}
-		return cnt
+		return cnt, idx
 		// starts with '^' ie a local ref
 	} else {
 		checkedCurrent := false
 		for _, seg := range segs {
 			if seg.IsAddr {
 				ct := current.Contents[seg.Addr]
-				c := ct.(*Container)
-				return c
+				if c, ok := ct.(*Container); ok {
+					return c, 0
+				} else {
+					return current, seg.Addr
+				}
 			} else if seg.Name != ParentContainer {
 				ct, err := current.GetNamedContainer(seg.Name)
 				if err != nil {
 					log.Panic(err)
 				}
-				return ct
+				return ct, 0
 			} else {
 				if !checkedCurrent {
 					checkedCurrent = true

@@ -3,9 +3,10 @@ package types
 import (
 	"encoding/json"
 	"fmt"
+	"strconv"
 	"strings"
 
-	"github.com/sirupsen/logrus"
+	log "github.com/sirupsen/logrus"
 )
 
 type Container struct {
@@ -19,7 +20,8 @@ type Container struct {
 func NewContainer(name string, parent *Container) *Container {
 	c := &Container{
 		Name:            name,
-		SubContainers:   map[string]*Container{},
+		Contents:        make([]Acceptor, 0),
+		SubContainers:   make(map[string]*Container),
 		ParentContainer: parent,
 	}
 	return c
@@ -44,6 +46,8 @@ func (c *Container) unmarshalString(str string) error {
 			StringVal(strings.TrimPrefix(str, "^")))
 	} else if cmd, ok := IsControlCommand(str); ok {
 		c.Contents = append(c.Contents, cmd)
+	} else if op, ok := IsOperator(str); ok {
+		c.Contents = append(c.Contents, Operator(op))
 	}
 	return nil
 }
@@ -63,16 +67,22 @@ func (c *Container) unmarshalContainer(cnt []any) error {
 			c.Contents = append(c.Contents, subContainer)
 		case string:
 			c.unmarshalString(typ)
-		case int:
-			c.Contents = append(c.Contents, IntVal(typ))
+		// All numbers get converted to floats. strconv dance
+		// to figure out if we can use an int
 		case float64:
-			c.Contents = append(c.Contents, FloatVal(typ))
+			str := strconv.FormatFloat(typ, 'f', -1, 64)
+			if num, err := strconv.Atoi(str); err == nil {
+				c.Contents = append(c.Contents, IntVal(num))
+			} else {
+				c.Contents = append(c.Contents, FloatVal(typ))
+			}
 		case map[string]any:
 			c.unmarshalMaps(typ)
+		case bool:
+			c.Contents = append(c.Contents, BoolVal(typ))
 		default:
-			logrus.Error("Unrecognized Container element ", val)
+			log.Error("Unrecognized Container element ", val)
 		}
-
 	}
 	return nil
 }
@@ -92,7 +102,7 @@ func (c *Container) parseFinalElement(obj map[string]any) {
 				subContainer.unmarshalContainer(cnt)
 				c.SubContainers[k] = subContainer
 			} else {
-				logrus.Panic("Unrecognized Final Element ", k, v)
+				log.Panic("Unrecognized Final Element ", k, v)
 			}
 		}
 	}
@@ -108,8 +118,8 @@ func (c *Container) unmarshalMaps(obj map[string]any) {
 			target := v.(string)
 			ptr := NewVariablePointer(target)
 			if i, ok := obj["ci"]; ok {
-				idx := i.(int)
-				ptr.ContextIndex = idx
+				idx := i.(float64)
+				ptr.ContextIndex = int(idx)
 			}
 			c.Contents = append(c.Contents, ptr)
 		case "->":
@@ -180,15 +190,8 @@ func (c *Container) unmarshalMaps(obj map[string]any) {
 				Flag: flag,
 			})
 		case "VAR?":
-			name := v.(string)
-			var re bool
-			if r, ok := obj["re"]; ok {
-				re = r.(bool)
-			}
-			c.Contents = append(c.Contents, GlobalVar{
-				Name:     name,
-				ReAssign: re,
-			})
+			val := v.(string)
+			c.Contents = append(c.Contents, VarRef(val))
 		case "temp=":
 			name := v.(string)
 			var re bool
@@ -200,8 +203,15 @@ func (c *Container) unmarshalMaps(obj map[string]any) {
 				ReAssign: re,
 			})
 		case "VAR=":
-			val := v.(string)
-			c.Contents = append(c.Contents, VarRef(val))
+			name := v.(string)
+			var re bool
+			if r, ok := obj["re"]; ok {
+				re = r.(bool)
+			}
+			c.Contents = append(c.Contents, GlobalVar{
+				Name:     name,
+				ReAssign: re,
+			})
 		case "CNT?":
 			val := v.(string)
 			c.Contents = append(c.Contents, ReadCount(val))
@@ -209,7 +219,7 @@ func (c *Container) unmarshalMaps(obj map[string]any) {
 		case "var", "c", "exArgs", "ci", "flg", "re":
 			continue
 		default:
-			logrus.Warn("Unrecognized key ", k)
+			log.Warn("Unrecognized key ", k)
 		}
 	}
 }
@@ -250,6 +260,7 @@ func (c *Container) GetRoot() *Container {
 
 func (c *Container) PositionInParent() (int, error) {
 	// TODO: What if this is a sub-container?
+	// Looks like we will need to use some sort of stack or previous pointer and pop to it.
 	if c.ParentContainer != nil {
 		for x := 0; x < len(c.ParentContainer.Contents); x++ {
 			obj := c.ParentContainer.Contents[x]
@@ -259,7 +270,10 @@ func (c *Container) PositionInParent() (int, error) {
 				}
 			}
 		}
-		logrus.Panic("container not found in parent")
+		log.WithFields(log.Fields{
+			"name":   c.Name,
+			"parent": c.ParentContainer.Name,
+		}).Panic("container not found in parent")
 	}
 	return -1, fmt.Errorf("no Parent")
 }
