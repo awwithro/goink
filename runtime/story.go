@@ -37,8 +37,9 @@ type Story struct {
 	stringMarker    int //Used to track index of stack to concatenate into a string
 	state           *StoryState
 	// Where in the ink we're located
-	currentAddress Address
-	Finished       bool
+	currentAddress  Address
+	previousAddress stacks.Stack[Address]
+	Finished        bool
 }
 
 func NewStory(ink types.Ink) Story {
@@ -49,6 +50,7 @@ func NewStory(ink types.Ink) Story {
 		mode:            None,
 		stringMarker:    -1,
 		state:           NewStoryState(),
+		previousAddress: arraystack.New[Address](),
 	}
 	return s
 }
@@ -75,11 +77,20 @@ func (s *Story) startStrMode() {
 	s.stringMarker = s.outputBuffer.Size()
 }
 func (s *Story) popOutput() {
-	val := mustPopStack(s.evaluationStack)
-	if str, ok := val.(fmt.Stringer); !ok {
-		panicInvalidStackType(str, val)
-	} else {
-		s.outputBuffer.Push(str.String())
+	str := mustPopStack[fmt.Stringer](s.evaluationStack)
+	s.outputBuffer.Push(str.String())
+
+}
+
+func (s *Story) pushVisitCount() {
+	count := s.state.visitCounts[s.currentAddress.C]
+	s.evaluationStack.Push(types.IntVal(count))
+}
+
+func (s *Story) duplicateTopItem() {
+	item, ok := s.evaluationStack.Peek()
+	if ok {
+		s.evaluationStack.Push(item)
 	}
 }
 
@@ -106,34 +117,31 @@ func panicInvalidModeTransition(current, attempted Mode) {
 	log.Panicf("Invalid Mode transition. Can't go from %s to %s", current, attempted)
 }
 
-func panicInvalidStackType(expected any, actual any) {
+func panicInvalidStackType[T any](expected T, actual any) {
 	log.Panicf("non %s in stack: %s, %v", reflect.TypeOf(expected), reflect.TypeOf(actual), actual)
 }
 
 func (s *Story) Start() {
-	s.enterContainer(s.ink.Root.Contents[0].(*types.Container), 0)
+	// NEED TO PARSE ALL GLOBALS IN SPECIAL "global decal" Subcontainer of root
+	s.enterContainer(Address{C: s.ink.Root.Contents[0].(*types.Container), I: 0})
 }
 
-func mustPopStack(s stacks.Stack[any]) any {
+func mustPopStack[T any](s stacks.Stack[any]) T {
 	val, ok := s.Pop()
 	if !ok {
 		log.Panic("Popped empty stack")
 	}
-	log.Debug("Popped ", val)
-	return val
-}
-
-func mustPopNumeric(s stacks.Stack[any]) types.NumericVal {
-	x := mustPopStack(s)
-	num, ok := x.(types.NumericVal)
+	log.Debugf("Popped %s %v", reflect.TypeOf(val), val)
+	ret, ok := val.(T)
 	if !ok {
-		panicInvalidStackType(num, x)
+		panicInvalidStackType[T](ret, val)
 	}
-	return num
+	return ret
 }
 
-func (s *Story) ResolvePath(p types.Path) (*types.Container, int) {
-	return types.ResolvePath(p, s.currentAddress.C)
+func (s *Story) ResolvePath(p types.Path) Address {
+	c, i := types.ResolvePath(p, s.currentAddress.C)
+	return Address{C: c, I: i}
 }
 
 func (s *Story) Step() (StoryState, error) {
@@ -157,10 +165,22 @@ func (s *Story) reEnterStory() {
 	s.state.setDone(false)
 	if s.currentAddress.AtEnd() {
 		log.Debug("Reached end of Container: ", s.currentAddress.C.Name)
-		// End of the story
+		// End of the story?
 		if pos, err := s.currentAddress.C.PositionInParent(); err != nil {
-			log.Debug("reached end of ink ", err)
-			s.endStory()
+			// A choice is needed
+			if len(s.state.CurrentChoices) > 0 {
+				s.state.setDone(true)
+				return
+			}
+			switch err.(type) {
+			case types.EndOfSubContainer:
+				// If we've reached the end of a sub-container, this is an implicit end of the story
+				s.endStory()
+			default:
+				// NoParent, at the root container
+				log.Debug("reached end of ink ", err)
+				s.endStory()
+			}
 		} else {
 			// pick up at the position just after the container we left
 			s.currentAddress.Set(s.currentAddress.C.ParentContainer, pos+1)
@@ -175,7 +195,7 @@ func (s *Story) reEnterStory() {
 }
 
 func (s *Story) endStory() {
-	log.Debug("Ending Story")
+	log.Debugf("Ending Story. Located at %s %v", s.currentAddress.C.Name, s.state.CurrentChoices)
 	s.state.text = ""
 	s.writeToState()
 	s.Finished = true
@@ -183,21 +203,20 @@ func (s *Story) endStory() {
 }
 
 func (s *Story) moveToPath(path types.Path) {
-	target, idx := s.ResolvePath(path)
-	s.enterContainer(target, idx)
+	a := s.ResolvePath(path)
+	s.enterContainer(a)
 }
 
 func (s *Story) choose(c Choice) {
-	cnt, idx := s.ResolvePath(c.Destination)
-	s.enterContainer(cnt, idx)
+	s.enterContainer(c.Destination)
 	s.state.TurnCount++
 	s.state.CurrentChoices = s.state.CurrentChoices[:0]
 	s.state.setDone(false)
 }
 
-func (s *Story) enterContainer(c *types.Container, idx int) {
-	s.currentAddress.Set(c, idx)
-	s.state.RecordContainer(c, idx)
+func (s *Story) enterContainer(a Address) {
+	s.currentAddress = a
+	s.state.RecordContainer(a)
 }
 
 func (s *Story) ChoseIndex(idx int) error {

@@ -152,11 +152,10 @@ func (c *ChoicePoint) OnceOnly() bool {
 	return c.Flag&0x10 == 0x10
 }
 
-type ReadCount string
+type ReadCount Path
 
 func (r ReadCount) Accept(v Visitor) {
-	//v.VisitReadCount(r)
-	panic("not implemented")
+	v.VisitReadCount(r)
 }
 
 type VarRef string
@@ -189,8 +188,7 @@ type VariablePointer struct {
 }
 
 func (p VariablePointer) Accept(v Visitor) {
-	//v.VisitVariablePointer(p)
-	panic("not implemented")
+	v.VisitVariablePointer(p)
 }
 
 func NewVariablePointer(name string) VariablePointer {

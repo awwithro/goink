@@ -43,7 +43,7 @@ func (s *StoryState) GetVar(name string) any {
 type Choice struct {
 	text           string
 	choiceOnlyText string
-	Destination    types.Path
+	Destination    Address
 	OnlyDefault    bool
 }
 
@@ -54,7 +54,9 @@ func (c Choice) storyText() string {
 	return c.text
 }
 
-func (s *StoryState) RecordContainer(c *types.Container, idx int) {
+func (s *StoryState) RecordContainer(a Address) {
+	c := a.C
+	idx := a.I
 	if c.RecordVisits() {
 		if !c.CountStartOnly() || idx == 0 {
 			s.visitCounts[c] += 1
@@ -72,8 +74,8 @@ func (s *StoryState) setDone(x bool) {
 func (s *StoryState) CanContinue() bool {
 	if len(s.CurrentChoices) > 0 && s.done {
 		return false
-	// } else if s.done && len(s.CurrentChoices) == 0 {
-	// 	return false
+		// } else if s.done && len(s.CurrentChoices) == 0 {
+		// 	return false
 	}
 	return true
 }

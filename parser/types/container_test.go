@@ -109,6 +109,20 @@ func TestResolvePath(t *testing.T) {
 			expectedC:        c,
 			expectedIdx:      3,
 		},
+		{
+			desc:             "Only Parent Refs",
+			path:             ".^.^",
+			currentContainer: baz,
+			expectedC:        bar,
+			expectedIdx:      0,
+		},
+		{
+			desc:             "Relative Sub-container with addr",
+			path:             ".^.^.2.Baz",
+			currentContainer: bar,
+			expectedC:        baz,
+			expectedIdx:      0,
+		},
 	}
 	for _, tC := range testCases {
 		assert := assert.New(t)

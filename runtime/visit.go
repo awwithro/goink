@@ -30,12 +30,16 @@ func (s *Story) VisitControlCommand(cmd types.ControlCommand) {
 	case types.PopOutput:
 		s.popOutput()
 	case types.Pop:
-		_ = mustPopStack(s.evaluationStack)
+		_ = mustPopStack[any](s.evaluationStack)
 	case types.Done:
 		s.state.setDone(true)
 	case types.End:
 		s.endStory()
 	case types.NoOp:
+	case types.VisitCount:
+		s.pushVisitCount()
+	case types.Duplicate:
+		s.duplicateTopItem()
 	default:
 		log.Panic("Unimplemented Command! ", cmd)
 	}
@@ -43,12 +47,17 @@ func (s *Story) VisitControlCommand(cmd types.ControlCommand) {
 }
 
 func (s *Story) VisitTmpVar(v types.TempVar) {
-	p := mustPopStack(s.evaluationStack)
+	p := mustPopStack[any](s.evaluationStack)
 	switch val := p.(type) {
 	case types.Path:
 		s.state.SetVar(v.Name, val)
 	case types.DivertTarget:
 		s.state.SetVar(v.Name, types.Path(val))
+	case types.VariablePointer:
+		// ref := s.state.GetVar(val.Name)
+		// x := ref.(types.Acceptor)
+		// s.state.SetVar(v.Name, *x)
+		// Need to set a var that is a pointer to what this points to
 	default:
 		log.Panic("don't know how to set tmp var to ", reflect.TypeOf(val))
 	}
@@ -62,22 +71,32 @@ func (s *Story) VisitDivertTarget(divert types.DivertTarget) {
 
 func (s *Story) VisitDivert(divert types.Divert) {
 	if divert.Conditional {
-		item := mustPopStack(s.evaluationStack)
+		var visit bool
+		item := mustPopStack[any](s.evaluationStack)
 		switch ok := item.(type) {
 		case bool:
-			if ok {
-				s.moveToPath(divert.Path)
-				return
-			} else {
-				log.Debug("Conditional divert failed")
-				// If we don't divert, advance the index
-				s.currentAddress.Increment()
-				return
-			}
+			visit = ok
+		case types.NumericVal:
+			visit = ok.AsBool()
 		default:
 			panicInvalidStackType(true, ok)
 		}
+		if visit {
+			s.moveToPath(divert.Path)
+			return
+		} else {
+			log.Debug("Conditional divert failed")
+			// If we don't divert, advance the index
+			s.currentAddress.Increment()
+			return
+		}
 	}
+	if s.mode == None {
+		oldAddr := s.currentAddress
+		oldAddr.Increment()
+		s.previousAddress.Push(oldAddr)
+	}
+	log.Debug("Diverting to: ", divert.Path)
 	s.moveToPath(divert.Path)
 
 }
@@ -94,45 +113,39 @@ func (s *Story) VisitVariableDivert(divert types.VariableDivert) {
 
 func (s *Story) VisitChoicePoint(p types.ChoicePoint) {
 	log.Debug("Visit Choice Point ", p.Path)
+	a := s.ResolvePath(p.Path)
+	defer s.currentAddress.Increment()
 	if p.HasCondition() {
-		x := mustPopNumeric(s.evaluationStack)
+		x := mustPopStack[types.NumericVal](s.evaluationStack)
 		if !x.AsBool() {
 			return
 		}
 	}
-	choice := Choice{Destination: p.Path}
+	choice := Choice{Destination: a}
 	if p.OnceOnly() {
-		cnt, _ := s.ResolvePath(p.Path)
-		if s.state.visitCounts[cnt] > 0 {
+		if s.state.visitCounts[a.C] > 0 {
 			return
 		}
 	}
 	if p.HasChoiceOnly() {
-		x := mustPopStack(s.evaluationStack)
-		if txt, ok := x.(types.StringVal); ok {
-			choice.choiceOnlyText = txt.String()
-		} else {
-			panicInvalidStackType(txt, x)
-		}
+		txt := mustPopStack[types.StringVal](s.evaluationStack)
+		choice.choiceOnlyText = txt.String()
+
 	}
 	if p.HasStartContent() {
-		x := mustPopStack(s.evaluationStack)
-		if txt, ok := x.(types.StringVal); ok {
-			choice.text = txt.String()
-		} else {
-			panicInvalidStackType(txt, x)
-		}
+		txt := mustPopStack[types.StringVal](s.evaluationStack)
+		choice.text = txt.String()
+
 	}
 	if p.IsInvisibleDefault() {
 		choice.OnlyDefault = true
 	}
 	s.state.CurrentChoices = append(s.state.CurrentChoices, choice)
-	s.currentAddress.Increment()
 }
 
 func (s *Story) VisitContainer(c *types.Container) {
 	log.Debug("Visiting Container: ", c.Name)
-	s.enterContainer(c, 0)
+	s.enterContainer(Address{C: c, I: 0})
 	// no advance needed
 }
 
@@ -159,7 +172,7 @@ func (s *Story) VisitBoolVal(b types.BoolVal) {
 
 func (s *Story) VisitGlobalVar(v types.GlobalVar) {
 	log.Debug("Visiting Global Var ", v.Name)
-	val := mustPopStack(s.evaluationStack)
+	val := mustPopStack[any](s.evaluationStack)
 	s.state.globalVars[v.Name] = val
 	s.currentAddress.Increment()
 }
@@ -176,4 +189,15 @@ func (s *Story) VisitVarRef(v types.VarRef) {
 	log.Debugf("Pushing val %v", val)
 	s.evaluationStack.Push(val)
 	s.currentAddress.Increment()
+}
+
+func (s *Story) VisitReadCount(r types.ReadCount) {
+	addr := s.ResolvePath(types.Path(r))
+	count := s.state.visitCounts[addr.C]
+	s.evaluationStack.Push(types.IntVal(count))
+	s.currentAddress.Increment()
+}
+
+func (s *Story) VisitVariablePointer(v types.VariablePointer) {
+
 }

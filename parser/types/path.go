@@ -66,30 +66,41 @@ func ResolvePath(p Path, current *Container) (*Container, int) {
 		return cnt, idx
 		// starts with '^' ie a local ref
 	} else {
-		checkedCurrent := false
-		for _, seg := range segs {
+		// ignore the first ".^" since that implies the current container, not the parent, .^.^ is the parent of the current
+		// we also skip the last element and handle that as the return location
+		for _, seg := range segs[1 : len(segs)-1] {
 			if seg.IsAddr {
 				ct := current.Contents[seg.Addr]
 				if c, ok := ct.(*Container); ok {
-					return c, 0
+					current = c
 				} else {
-					return current, seg.Addr
+					log.Panic("path addresses through a non-container element")
 				}
 			} else if seg.Name != ParentContainer {
 				ct, err := current.GetNamedContainer(seg.Name)
 				if err != nil {
 					log.Panic(err)
 				}
-				return ct, 0
+				current = ct
 			} else {
-				if !checkedCurrent {
-					checkedCurrent = true
-				} else {
-					current = current.ParentContainer
-				}
+				current = current.ParentContainer
 			}
+		}
+		// we've parsed the path elements and are at the final address
+		seg := segs[len(segs)-1]
+		if seg.IsAddr {
+			return current, seg.Addr
+		} else if seg.Name == ParentContainer {
+			return current.ParentContainer, 0
+		} else {
+			c, err := current.GetNamedContainer(seg.Name)
+			if err != nil {
+				log.Panic("no container named ", seg.Name)
+			}
+			return c, 0
 		}
 
 	}
-	panic("shouldn't be here")
+	//return current, 0
+
 }

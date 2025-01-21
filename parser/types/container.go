@@ -259,9 +259,11 @@ func (c *Container) GetRoot() *Container {
 }
 
 func (c *Container) PositionInParent() (int, error) {
-	// TODO: What if this is a sub-container?
-	// Looks like we will need to use some sort of stack or previous pointer and pop to it.
 	if c.ParentContainer != nil {
+		_, ok := c.ParentContainer.SubContainers[c.Name]
+		if ok {
+			return -1, EndOfSubContainer{}
+		}
 		for x := 0; x < len(c.ParentContainer.Contents); x++ {
 			obj := c.ParentContainer.Contents[x]
 			if cnt, ok := obj.(*Container); ok {
@@ -270,12 +272,14 @@ func (c *Container) PositionInParent() (int, error) {
 				}
 			}
 		}
-		log.WithFields(log.Fields{
-			"name":   c.Name,
-			"parent": c.ParentContainer.Name,
-		}).Panic("container not found in parent")
 	}
 	return -1, fmt.Errorf("no Parent")
 }
 
 type NoNamedContainer error
+
+type EndOfSubContainer struct{}
+
+func (e EndOfSubContainer) Error() string {
+	return "reached end of sub-container"
+}

@@ -15,6 +15,8 @@ type Visitor interface {
 	VisitBoolVal(BoolVal)
 	VisitGlobalVar(GlobalVar)
 	VisitVarRef(VarRef)
+	VisitReadCount(ReadCount)
+	VisitVariablePointer(VariablePointer)
 }
 
 type Acceptor interface {

@@ -16,6 +16,7 @@ var controlCommandMap = map[string]ControlCommand{
 	"choiceCnt": ChoiceCount,
 	"turn":      PushTurn,
 	"turns":     PushTurnsSinceTarget,
+	"visit":     VisitCount,
 	"seq":       Sequence,
 	"thread":    Thread,
 	"done":      Done,
@@ -37,6 +38,7 @@ const (
 	ChoiceCount
 	PushTurn
 	PushTurnsSinceTarget
+	VisitCount
 	Sequence
 	Thread
 	Done
