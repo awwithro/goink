@@ -1,7 +1,6 @@
 package runtime
 
 import (
-	"reflect"
 	"strings"
 
 	"github.com/awwithro/goink/parser/types"
@@ -47,41 +46,34 @@ func (s *Story) VisitControlCommand(cmd types.ControlCommand) {
 }
 
 func (s *Story) VisitTmpVar(v types.TempVar) {
+	defer s.currentAddress.Increment()
 	p := mustPopStack[any](s.evaluationStack)
+	// If this is a reassignment to a variablePointer, dereference and set the target
+	if v.ReAssign {
+		val := s.state.GetVar(v.Name)
+		if ref, ok := val.(types.VariablePointer); ok {
+			s.setVariablePointerValue(ref, p)
+			return
+		}
+	}
 	switch val := p.(type) {
-	case types.Path:
-		s.state.SetVar(v.Name, val)
 	case types.DivertTarget:
 		s.state.SetVar(v.Name, types.Path(val))
 	case types.VariablePointer:
-		// ref := s.state.GetVar(val.Name)
-		// x := ref.(types.Acceptor)
-		// s.state.SetVar(v.Name, *x)
-		// Need to set a var that is a pointer to what this points to
+		s.state.SetVar(v.Name, val)
 	default:
-		log.Panic("don't know how to set tmp var to ", reflect.TypeOf(val))
+		s.state.SetVar(v.Name, val)
 	}
-	s.currentAddress.Increment()
 }
 
 func (s *Story) VisitDivertTarget(divert types.DivertTarget) {
 	s.evaluationStack.Push(divert)
 	s.currentAddress.Increment()
 }
-
-func (s *Story) VisitDivert(divert types.Divert) {
+func (s *Story) doDivert(divert types.Divert) {
 	if divert.Conditional {
-		var visit bool
-		item := mustPopStack[any](s.evaluationStack)
-		switch ok := item.(type) {
-		case bool:
-			visit = ok
-		case types.NumericVal:
-			visit = ok.AsBool()
-		default:
-			panicInvalidStackType(true, ok)
-		}
-		if visit {
+		visit := mustPopStack[types.Truthy](s.evaluationStack)
+		if visit.AsBool() {
 			s.moveToPath(divert.Path)
 			return
 		} else {
@@ -91,17 +83,25 @@ func (s *Story) VisitDivert(divert types.Divert) {
 			return
 		}
 	}
-	if s.mode == None {
-		oldAddr := s.currentAddress
-		oldAddr.Increment()
-		s.previousAddress.Push(oldAddr)
-	}
 	log.Debug("Diverting to: ", divert.Path)
 	s.moveToPath(divert.Path)
+}
+func (s *Story) VisitDivert(divert types.Divert) {
+	s.doDivert(divert)
+}
 
+func (s *Story) VisitFunctionDivert(f types.FunctionDivert) {
+	// Pushes the old address so we know where to return to
+	// after the function runs
+	oldAddr := s.currentAddress
+	oldAddr.Increment()
+	s.previousAddress.Push(oldAddr)
+	s.doDivert(f.Divert)
 }
 
 func (s *Story) VisitVariableDivert(divert types.VariableDivert) {
+	// TODO: Can we have a variable divert with condition?
+	// if so, do we check for the condition or divert path first?
 	log.Debug("Visit Variable Divert ", divert.Name)
 	p := s.state.GetVar(divert.Name)
 	if path, ok := p.(types.Path); ok {
@@ -116,7 +116,7 @@ func (s *Story) VisitChoicePoint(p types.ChoicePoint) {
 	a := s.ResolvePath(p.Path)
 	defer s.currentAddress.Increment()
 	if p.HasCondition() {
-		x := mustPopStack[types.NumericVal](s.evaluationStack)
+		x := mustPopStack[types.Truthy](s.evaluationStack)
 		if !x.AsBool() {
 			return
 		}
@@ -179,15 +179,28 @@ func (s *Story) VisitGlobalVar(v types.GlobalVar) {
 
 func (s *Story) VisitVarRef(v types.VarRef) {
 	log.Debug("Visiting Var Ref ", v)
-	var val any
-	var ok bool
-	if val, ok = s.state.tmpVars[string(v)]; ok {
+	var finalVal any
+	var intermediateValue any
+
+	// first see if the var is set
+	if val, ok := s.state.tmpVars[string(v)]; ok {
+		intermediateValue = val
 	} else if val, ok = s.state.globalVars[string(v)]; ok {
+		intermediateValue = val
 	} else {
-		val = false
+		log.Debugf("temp %v\n", s.state.tmpVars)
+		log.Debugf("global %v\n", s.state.tmpVars)
+		log.Panic("ref to unset var ", string(v))
 	}
-	log.Debugf("Pushing val %v", val)
-	s.evaluationStack.Push(val)
+
+	// if set, see if we need to dereference a variable pointer
+	if p, ok := intermediateValue.(types.VariablePointer); ok {
+		finalVal = s.getVariablePointerValue(p)
+	} else {
+		finalVal = intermediateValue
+	}
+	log.Debugf("Pushing val %v", finalVal)
+	s.evaluationStack.Push(finalVal)
 	s.currentAddress.Increment()
 }
 
@@ -199,5 +212,20 @@ func (s *Story) VisitReadCount(r types.ReadCount) {
 }
 
 func (s *Story) VisitVariablePointer(v types.VariablePointer) {
+	s.evaluationStack.Push(v)
+	s.currentAddress.Increment()
 
+}
+
+func (s *Story) getVariablePointerValue(p types.VariablePointer) any {
+	// TODO: Use the ci of p to determine if global or local
+	val, ok := s.state.globalVars[p.Name]
+	if !ok {
+		log.Panic("nil pointer, no var ", p.Name)
+	}
+	return val
+}
+func (s *Story) setVariablePointerValue(p types.VariablePointer, val any) {
+	// TODO: Use the ci of p to determine if global or local
+	s.state.globalVars[p.Name] = val
 }

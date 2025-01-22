@@ -2,11 +2,19 @@ package types
 
 import "strconv"
 
+const (
+	GlobalVarKey = "global decl"
+)
+
 type Ink struct {
 	InkVersion int       `json:"inkVersion"`
 	Root       Container `json:"root"`
 }
 type BoolVal bool
+
+func (b BoolVal) AsBool() bool {
+	return bool(b)
+}
 
 func (b BoolVal) Accept(v Visitor) {
 	v.VisitBoolVal(b)
@@ -39,11 +47,15 @@ func (f FloatVal) String() string {
 	return strconv.FormatFloat(float64(f), 'f', -1, 64)
 }
 
+type Truthy interface {
+	AsBool() bool
+}
+
 type NumericVal interface {
 	IsFloat() bool
 	AsInt() int
 	AsFloat() float64
-	AsBool() bool
+	Truthy
 }
 
 func (i IntVal) IsFloat() bool {
@@ -97,18 +109,15 @@ func (d VariableDivert) Accept(v Visitor) {
 }
 
 type FunctionDivert struct {
-	Path        Path
-	Conditional bool
+	Divert
 }
 
 func (f FunctionDivert) Accept(v Visitor) {
-	//v.VisitFunction(d)
-	panic("not implemented")
+	v.VisitFunctionDivert(f)
 }
 
 type TunnelDivert struct {
-	Path        Path
-	Conditional bool
+	Divert
 }
 
 func (t TunnelDivert) Accept(v Visitor) {
@@ -117,9 +126,8 @@ func (t TunnelDivert) Accept(v Visitor) {
 }
 
 type ExternalFunctionDivert struct {
-	Path        Path
-	Args        int
-	Conditional bool
+	Divert
+	Args int
 }
 
 func (e ExternalFunctionDivert) Accept(v Visitor) {

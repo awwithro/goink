@@ -151,8 +151,10 @@ func (c *Container) unmarshalMaps(obj map[string]any) {
 				conditional = i.(bool)
 			}
 			c.Contents = append(c.Contents, FunctionDivert{
-				Path:        Path(target),
-				Conditional: conditional,
+				Divert{
+					Path:        Path(target),
+					Conditional: conditional,
+				},
 			})
 		case "->t->":
 			target := v.(string)
@@ -161,8 +163,10 @@ func (c *Container) unmarshalMaps(obj map[string]any) {
 				conditional = i.(bool)
 			}
 			c.Contents = append(c.Contents, TunnelDivert{
-				Path:        Path(target),
-				Conditional: conditional,
+				Divert{
+					Path:        Path(target),
+					Conditional: conditional,
+				},
 			})
 		case "x()":
 			target := v.(string)
@@ -175,9 +179,11 @@ func (c *Container) unmarshalMaps(obj map[string]any) {
 				conditional = i.(bool)
 			}
 			c.Contents = append(c.Contents, ExternalFunctionDivert{
-				Path:        Path(target),
-				Conditional: conditional,
-				Args:        args,
+				Divert: Divert{
+					Path:        Path(target),
+					Conditional: conditional,
+				},
+				Args: args,
 			})
 		case "*":
 			path := v.(string)

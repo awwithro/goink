@@ -10,6 +10,7 @@ type StoryState struct {
 	CurrentChoices []Choice
 	tmpVars        map[string]any
 	done           bool
+	Finished       bool
 	visitCounts    map[*types.Container]int
 	lastTurn       map[*types.Container]int
 	TurnCount      int
@@ -72,7 +73,7 @@ func (s *StoryState) setDone(x bool) {
 }
 
 func (s *StoryState) CanContinue() bool {
-	if len(s.CurrentChoices) > 0 && s.done {
+	if len(s.CurrentChoices) > 0 && s.done || s.Finished {
 		return false
 		// } else if s.done && len(s.CurrentChoices) == 0 {
 		// 	return false

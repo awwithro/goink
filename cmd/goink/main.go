@@ -39,7 +39,7 @@ func runStory(s runtime.Story) {
 	log.Debug("Starting")
 	reader := bufio.NewReader(os.Stdin)
 	s.Start()
-	for !s.Finished {
+	for !s.IsFinished() {
 		state, err := s.Step()
 		if err != nil {
 			log.Error(err)

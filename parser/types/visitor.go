@@ -17,6 +17,7 @@ type Visitor interface {
 	VisitVarRef(VarRef)
 	VisitReadCount(ReadCount)
 	VisitVariablePointer(VariablePointer)
+	VisitFunctionDivert(FunctionDivert)
 }
 
 type Acceptor interface {
