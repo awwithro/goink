@@ -3,7 +3,7 @@ package runtime
 import (
 	"strings"
 
-	"github.com/awwithro/goink/parser/types"
+	"github.com/awwithro/goink/pkg/parser/types"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -41,6 +41,10 @@ func (s *Story) VisitControlCommand(cmd types.ControlCommand) {
 		s.duplicateTopItem()
 	case types.Glue:
 		s.glue()
+	case types.Void:
+		s.evaluationStack.Push(types.VoidVal{})
+	case types.ReturnTunnel:
+		s.returnTunnel()
 	default:
 		log.Panic("Unimplemented Command! ", cmd)
 	}
@@ -99,6 +103,15 @@ func (s *Story) VisitFunctionDivert(f types.FunctionDivert) {
 	oldAddr.Increment()
 	s.previousAddress.Push(oldAddr)
 	s.doDivert(f.Divert)
+}
+
+func (s *Story) VisitTunnelDivert(t types.TunnelDivert) {
+	// Pushes the old address so we know where to return to
+	// after the function runs
+	oldAddr := s.currentAddress
+	oldAddr.Increment()
+	s.previousAddress.Push(oldAddr)
+	s.doDivert(t.Divert)
 }
 
 func (s *Story) VisitVariableDivert(divert types.VariableDivert) {
@@ -172,6 +185,10 @@ func (s *Story) VisitBoolVal(b types.BoolVal) {
 	s.currentAddress.Increment()
 }
 
+func (s *Story) VisitVoidVal(b types.VoidVal) {
+	s.currentAddress.Increment()
+}
+
 func (s *Story) VisitGlobalVar(v types.GlobalVar) {
 	log.Debug("Visiting Global Var ", v.Name)
 	val := mustPopStack[any](s.evaluationStack)
@@ -238,4 +255,8 @@ func (s *Story) glue() {
 		log.Debug("Popped newline")
 		val, _ = s.outputBuffer.Peek()
 	}
+}
+
+func (s *Story) returnTunnel() {
+	s.currentAddress, _ = s.previousAddress.Pop()
 }

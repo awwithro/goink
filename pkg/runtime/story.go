@@ -5,7 +5,7 @@ import (
 	"reflect"
 	"strings"
 
-	"github.com/awwithro/goink/parser/types"
+	"github.com/awwithro/goink/pkg/parser/types"
 	"github.com/emirpasic/gods/v2/stacks"
 	"github.com/emirpasic/gods/v2/stacks/arraystack"
 	log "github.com/sirupsen/logrus"

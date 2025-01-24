@@ -3,7 +3,7 @@ package runtime
 import (
 	"math"
 
-	"github.com/awwithro/goink/parser/types"
+	"github.com/awwithro/goink/pkg/parser/types"
 	log "github.com/sirupsen/logrus"
 )
 

@@ -1,7 +1,7 @@
 package runtime
 
 import (
-	"github.com/awwithro/goink/parser/types"
+	"github.com/awwithro/goink/pkg/parser/types"
 	"github.com/sirupsen/logrus"
 )
 

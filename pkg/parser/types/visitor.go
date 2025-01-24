@@ -2,6 +2,7 @@ package types
 
 type Visitor interface {
 	VisitString(StringVal)
+	VisitVoidVal(VoidVal)
 	VisitControlCommand(ControlCommand)
 	VisitContainer(*Container)
 	VisitDivertTarget(DivertTarget)
@@ -18,6 +19,7 @@ type Visitor interface {
 	VisitReadCount(ReadCount)
 	VisitVariablePointer(VariablePointer)
 	VisitFunctionDivert(FunctionDivert)
+	VisitTunnelDivert(TunnelDivert)
 }
 
 type Acceptor interface {

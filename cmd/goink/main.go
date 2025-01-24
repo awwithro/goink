@@ -7,8 +7,8 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/awwithro/goink/parser"
-	"github.com/awwithro/goink/runtime"
+	"github.com/awwithro/goink/pkg/parser"
+	"github.com/awwithro/goink/pkg/runtime"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 )
@@ -45,9 +45,8 @@ func runStory(s runtime.Story) {
 			log.Error(err)
 		}
 
-		fmt.Print(state.GetText())
+		fmt.Println(state.GetText())
 		if !state.CanContinue() {
-
 			if len(state.CurrentChoices) > 0 {
 				for x, choice := range state.CurrentChoices {
 					fmt.Printf("%d: %s\n", x, choice.ChoiceText())

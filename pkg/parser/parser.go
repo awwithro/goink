@@ -3,7 +3,7 @@ package parser
 import (
 	"encoding/json"
 
-	"github.com/awwithro/goink/parser/types"
+	"github.com/awwithro/goink/pkg/parser/types"
 )
 
 func Parse(rawJson []byte) types.Ink {

@@ -10,6 +10,13 @@ type Ink struct {
 	InkVersion int       `json:"inkVersion"`
 	Root       Container `json:"root"`
 }
+
+type VoidVal struct{}
+
+func (v VoidVal) Accept(vs Visitor) {
+	vs.VisitVoidVal(v)
+}
+
 type BoolVal bool
 
 func (b BoolVal) AsBool() bool {
@@ -121,8 +128,7 @@ type TunnelDivert struct {
 }
 
 func (t TunnelDivert) Accept(v Visitor) {
-	//v.TunnelDivert(d)
-	panic("not implemented")
+	v.VisitTunnelDivert(t)
 }
 
 type ExternalFunctionDivert struct {

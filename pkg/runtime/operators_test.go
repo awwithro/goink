@@ -3,7 +3,7 @@ package runtime
 import (
 	"testing"
 
-	"github.com/awwithro/goink/parser/types"
+	"github.com/awwithro/goink/pkg/parser/types"
 	"github.com/emirpasic/gods/v2/stacks/arraystack"
 	"github.com/stretchr/testify/assert"
 )
@@ -33,7 +33,7 @@ func Test(t *testing.T) {
 			op:       types.And,
 			expected: types.FloatVal(1),
 		},
-				{
+		{
 			desc:     "Test And False",
 			stack:    []types.Acceptor{types.FloatVal(0), types.FloatVal(1)},
 			op:       types.And,
