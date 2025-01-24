@@ -39,24 +39,22 @@ func runStory(s runtime.Story) {
 	log.Debug("Starting")
 	reader := bufio.NewReader(os.Stdin)
 	s.Start()
+
 	for !s.IsFinished() {
-		state, err := s.Step()
+		state, err := s.RunContinuous()
 		if err != nil {
 			log.Error(err)
 		}
-
-		fmt.Println(state.GetText())
-		if !state.CanContinue() {
-			if len(state.CurrentChoices) > 0 {
-				for x, choice := range state.CurrentChoices {
-					fmt.Printf("%d: %s\n", x, choice.ChoiceText())
-				}
-				text, _ := reader.ReadString('\n')
-				c, _ := strconv.Atoi(strings.TrimSpace(text))
-				err = s.ChoseIndex(c)
-				if err != nil {
-					log.Error(err)
-				}
+		fmt.Print(state.GetText())
+		if len(state.CurrentChoices) > 0 {
+			for x, choice := range state.CurrentChoices {
+				fmt.Printf("%d: %s\n", x, choice.ChoiceText())
+			}
+			text, _ := reader.ReadString('\n')
+			c, _ := strconv.Atoi(strings.TrimSpace(text))
+			err = s.ChoseIndex(c)
+			if err != nil {
+				log.Error(err)
 			}
 		}
 	}

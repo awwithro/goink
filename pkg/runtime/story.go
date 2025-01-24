@@ -281,3 +281,16 @@ func (s *Story) setupGlobalVars() {
 	// Globals run until a "end" statement
 	s.state.Finished = false
 }
+
+func (s *Story) RunContinuous() (state StoryState, err error) {
+	run := true
+	for run {
+		if state, err = s.Step(); err != nil {
+			return state, err
+		} else if state.CanContinue() && !state.Finished {
+			continue
+		}
+		run = false
+	}
+	return state, err
+}
