@@ -39,6 +39,29 @@ func Test(t *testing.T) {
 			op:       types.And,
 			expected: types.FloatVal(0),
 		},
+		{
+			desc:     "Test Or True",
+			stack:    []types.Acceptor{types.FloatVal(0), types.FloatVal(1)},
+			op:       types.Or,
+			expected: types.FloatVal(1),
+		},
+		{
+			desc:     "Test Or False",
+			stack:    []types.Acceptor{types.FloatVal(0), types.FloatVal(0)},
+			op:       types.Or,
+			expected: types.FloatVal(0),
+		},
+		{
+			desc:     "Test Min",
+			stack:    []types.Acceptor{types.FloatVal(1), types.FloatVal(5)},
+			op:       types.Min,
+			expected: types.FloatVal(1),
+		},		{
+			desc:     "Test Max",
+			stack:    []types.Acceptor{types.FloatVal(1), types.FloatVal(5)},
+			op:       types.Max,
+			expected: types.FloatVal(5),
+		},
 	}
 	for _, tC := range testCases {
 		t.Run(tC.desc, func(t *testing.T) {
