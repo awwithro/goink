@@ -39,6 +39,8 @@ func (s *Story) VisitControlCommand(cmd types.ControlCommand) {
 		s.pushVisitCount()
 	case types.Duplicate:
 		s.duplicateTopItem()
+	case types.Glue:
+		s.glue()
 	default:
 		log.Panic("Unimplemented Command! ", cmd)
 	}
@@ -228,4 +230,12 @@ func (s *Story) getVariablePointerValue(p types.VariablePointer) any {
 func (s *Story) setVariablePointerValue(p types.VariablePointer, val any) {
 	// TODO: Use the ci of p to determine if global or local
 	s.state.globalVars[p.Name] = val
+}
+func (s *Story) glue() {
+	val, _ := s.outputBuffer.Peek()
+	for val == "\n" {
+		s.outputBuffer.Pop()
+		log.Debug("Popped newline")
+		val, _ = s.outputBuffer.Peek()
+	}
 }

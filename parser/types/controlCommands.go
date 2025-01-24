@@ -22,6 +22,7 @@ var controlCommandMap = map[string]ControlCommand{
 	"done":      Done,
 	"end":       End,
 	"void":      Void,
+	"<>":        Glue,
 }
 
 const (
@@ -44,6 +45,7 @@ const (
 	Done
 	End
 	Void
+	Glue
 )
 
 func IsControlCommand(str string) (ControlCommand, bool) {
