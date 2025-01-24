@@ -170,9 +170,9 @@ func or(x, y float64) float64 {
 }
 func not(x float64) float64 {
 	if x == 0 {
-		return 0
+		return 1
 	}
-	return 1
+	return 0
 }
 func min(x, y float64) float64 {
 	return math.Min(x, y)
