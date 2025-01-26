@@ -96,6 +96,7 @@ func (s *Story) popOutput() {
 
 func (s *Story) pushVisitCount() {
 	count := s.state.visitCounts[s.currentAddress.C]
+	log.Debug("Pushed visit count of ", count)
 	s.evaluationStack.Push(types.IntVal(count))
 }
 

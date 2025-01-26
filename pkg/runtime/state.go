@@ -29,19 +29,19 @@ func NewStoryState() *StoryState {
 	return s
 }
 
-func (s *StoryState)GetChoices()[]Choice{
+func (s *StoryState) GetChoices() []Choice {
 	fallback := []Choice{}
 	choices := []Choice{}
 	includeFallBack := true
-	for _, choice := range s.currentChoices{
-		if choice.OnlyDefault{
+	for _, choice := range s.currentChoices {
+		if choice.OnlyDefault {
 			fallback = append(fallback, choice)
-		} else{
+		} else {
 			choices = append(choices, choice)
 			includeFallBack = false
 		}
 	}
-	if includeFallBack{
+	if includeFallBack {
 		choices = append(choices, fallback...)
 	}
 	return choices
@@ -78,7 +78,12 @@ func (s *StoryState) RecordContainer(a Address) {
 	idx := a.I
 	if c.RecordVisits() {
 		if !c.CountStartOnly() || idx == 0 {
-			s.visitCounts[c] += 1
+			// our first visit
+			if _, ok := s.visitCounts[c]; !ok {
+				s.visitCounts[c] = 0
+			} else {
+				s.visitCounts[c] += 1
+			}
 		}
 	}
 	if c.RecordTurns() {
