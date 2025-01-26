@@ -162,11 +162,26 @@ func (s *Story) Step() (StoryState, error) {
 		s.state.text = ""
 		s.reEnterStory()
 		// if a choice is needed after taking a step, send text to the state
-		if !s.state.CanContinue() {
-			s.writeToState()
+		if !s.state.CanContinue() && len(s.state.GetChoices()) > 0 {
+			// check if only default choices remain
+			onlyDefaults := true
+			choices := s.state.GetChoices()
+			for _, choice := range choices {
+				if !choice.OnlyDefault {
+					onlyDefaults = false
+					break
+				}
+			}
+			// if we only have a default choices, chose it
+			if onlyDefaults {
+				s.choose(choices[0])
+				s.state.setDone(true)
+			} else{
+				// we have a choice to be made, write the story so far
+				s.writeToState()
+			}
+
 		}
-		// } else if s.state.done && len(s.state.CurrentChoices) == 0 {
-		// 	s.endStory()
 	} else {
 		return *s.state, fmt.Errorf("can't continue")
 	}
@@ -180,7 +195,7 @@ func (s *Story) reEnterStory() {
 		// End of the story?
 		if pos, err := s.currentAddress.C.PositionInParent(); err != nil {
 			// A choice is needed
-			if len(s.state.CurrentChoices) > 0 {
+			if len(s.state.GetChoices()) > 0 {
 				s.state.setDone(true)
 				return
 			}
@@ -216,7 +231,7 @@ func (s *Story) reEnterStory() {
 }
 
 func (s *Story) endStory() {
-	log.Debugf("Ending Story. Located at %s %v", s.currentAddress.C.Name, s.state.CurrentChoices)
+	log.Debugf("Ending Story. Located at %s %v", s.currentAddress.C.Name, s.state.currentChoices)
 	s.state.text = ""
 	s.writeToState()
 	s.state.Finished = true
@@ -231,7 +246,7 @@ func (s *Story) moveToPath(path types.Path) {
 func (s *Story) choose(c Choice) {
 	s.enterContainer(c.Destination)
 	s.state.TurnCount++
-	s.state.CurrentChoices = s.state.CurrentChoices[:0]
+	s.state.currentChoices = s.state.currentChoices[:0]
 	s.state.setDone(false)
 }
 
@@ -241,10 +256,10 @@ func (s *Story) enterContainer(a Address) {
 }
 
 func (s *Story) ChoseIndex(idx int) error {
-	if idx < 0 || idx >= len(s.state.CurrentChoices) {
-		return fmt.Errorf("%d is out of range of choices: %d", idx, len(s.state.CurrentChoices))
+	if idx < 0 || idx >= len(s.state.GetChoices()) {
+		return fmt.Errorf("%d is out of range of choices: %d", idx, len(s.state.GetChoices()))
 	}
-	s.choose(s.state.CurrentChoices[idx])
+	s.choose(s.state.GetChoices()[idx])
 	return nil
 }
 

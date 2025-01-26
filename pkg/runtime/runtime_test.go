@@ -15,6 +15,7 @@ func TestFullInkStory(t *testing.T) {
 		desc            string
 		inkJsonFilePath string
 		choices         []int
+		choiceCounts    []int // expected choice counts at each point we're offered choices
 		expectedText    string
 	}{
 		{
@@ -35,11 +36,22 @@ func TestFullInkStory(t *testing.T) {
 			choices:         []int{1},
 			expectedText:    "There were four lines of content.\nThey lived happily ever after.\n",
 		},
+		{
+			desc:            "Loop With Default Only Choices",
+			inkJsonFilePath: "../../examples/fallback.json",
+			choices:         []int{0, 0},
+			choiceCounts:    []int{2, 1},
+			expectedText:    "four test\n\ntwo test\n\nthree ",
+		},
 	}
 	parsed := map[string]types.Ink{}
 	for _, tC := range testCases {
 		assert := assert.New(t)
 		t.Run(tC.desc, func(t *testing.T) {
+			var assesChoiceCounts bool
+			if len(tC.choiceCounts) > 0 {
+				assesChoiceCounts = true
+			}
 			var ink types.Ink
 			var ok bool
 			// see if we've already parsed this in another test
@@ -57,7 +69,11 @@ func TestFullInkStory(t *testing.T) {
 			for !s.IsFinished() {
 				state, err = s.RunContinuous()
 				assert.NoError(err)
-				if len(state.CurrentChoices) > 0 {
+				numChoices := len(state.GetChoices())
+				if numChoices > 0 {
+					if assesChoiceCounts {
+						assert.Equal(tC.choiceCounts[choiceIdx], numChoices, "Wrong number of choices encountered")
+					}
 					err = s.ChoseIndex(tC.choices[choiceIdx])
 					assert.NoError(err)
 					choiceIdx++

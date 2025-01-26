@@ -7,7 +7,7 @@ import (
 
 type StoryState struct {
 	globalVars     map[string]any
-	CurrentChoices []Choice
+	currentChoices []Choice
 	tmpVars        map[string]any
 	done           bool
 	Finished       bool
@@ -20,13 +20,31 @@ type StoryState struct {
 func NewStoryState() *StoryState {
 	s := &StoryState{
 		globalVars:     make(map[string]any),
-		CurrentChoices: []Choice{},
+		currentChoices: []Choice{},
 		tmpVars:        make(map[string]any),
 		visitCounts:    make(map[*types.Container]int),
 		lastTurn:       make(map[*types.Container]int),
 		TurnCount:      1,
 	}
 	return s
+}
+
+func (s *StoryState)GetChoices()[]Choice{
+	fallback := []Choice{}
+	choices := []Choice{}
+	includeFallBack := true
+	for _, choice := range s.currentChoices{
+		if choice.OnlyDefault{
+			fallback = append(fallback, choice)
+		} else{
+			choices = append(choices, choice)
+			includeFallBack = false
+		}
+	}
+	if includeFallBack{
+		choices = append(choices, fallback...)
+	}
+	return choices
 }
 
 func (s *StoryState) SetVar(name string, val any) {
@@ -73,10 +91,8 @@ func (s *StoryState) setDone(x bool) {
 }
 
 func (s *StoryState) CanContinue() bool {
-	if len(s.CurrentChoices) > 0 && s.done || s.Finished {
+	if len(s.currentChoices) > 0 && s.done || s.Finished {
 		return false
-		// } else if s.done && len(s.CurrentChoices) == 0 {
-		// 	return false
 	}
 	return true
 }

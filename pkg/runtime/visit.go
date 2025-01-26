@@ -155,7 +155,7 @@ func (s *Story) VisitChoicePoint(p types.ChoicePoint) {
 	if p.IsInvisibleDefault() {
 		choice.OnlyDefault = true
 	}
-	s.state.CurrentChoices = append(s.state.CurrentChoices, choice)
+	s.state.currentChoices = append(s.state.currentChoices, choice)
 }
 
 func (s *Story) VisitContainer(c *types.Container) {

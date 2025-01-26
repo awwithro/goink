@@ -46,8 +46,8 @@ func runStory(s runtime.Story) {
 			log.Error(err)
 		}
 		fmt.Print(state.GetText())
-		if len(state.CurrentChoices) > 0 {
-			for x, choice := range state.CurrentChoices {
+		if len(state.GetChoices()) > 0 {
+			for x, choice := range state.GetChoices() {
 				fmt.Printf("%d: %s\n", x, choice.ChoiceText())
 			}
 			text, _ := reader.ReadString('\n')
