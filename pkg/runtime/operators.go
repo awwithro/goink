@@ -10,23 +10,8 @@ import (
 func (s *Story) VisitOperator(op types.Operator) {
 	log.Debugf("Visiting Operator: %d", op)
 	if op.IsUnary() {
-		var val types.NumericVal
-		pop := mustPopStack[any](s.evaluationStack)
-		switch v := pop.(type) {
-		case types.BoolVal:
-			if v {
-				val = types.FloatVal(1)
-			} else {
-				val = types.FloatVal(0)
-			}
-		case types.NumericVal:
-			val = v
-		default:
-			panicInvalidStackType(val, v)
-		}
-
+		val := mustPopStack[types.NumericVal](s.evaluationStack)
 		log.Debug("Operating on ", val)
-
 		switch op {
 		case types.Negate:
 			s.evaluationStack.Push(unaryOperator(val, negate))

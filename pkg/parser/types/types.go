@@ -2,6 +2,13 @@ package types
 
 import "strconv"
 
+var _ Truthy = IntVal(0)
+var _ Truthy = FloatVal(0)
+var _ Truthy = BoolVal(false)
+var _ NumericVal = IntVal(0)
+var _ NumericVal = FloatVal(0)
+var _ NumericVal = BoolVal(false)
+
 const (
 	GlobalVarKey = "global decl"
 )
@@ -26,6 +33,23 @@ func (b BoolVal) AsBool() bool {
 func (b BoolVal) Accept(v Visitor) {
 	v.VisitBoolVal(b)
 }
+
+func(b BoolVal) IsFloat()bool{
+	return false
+}
+func(b BoolVal) AsFloat() float64{
+	if b {
+		return 1
+	}
+	return 0
+}
+func(b BoolVal) AsInt() int{
+	if b {
+		return 1
+	}
+	return 0
+}
+
 
 type StringVal string
 

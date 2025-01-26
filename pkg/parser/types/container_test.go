@@ -100,7 +100,7 @@ func TestResolvePath(t *testing.T) {
 			desc:             "Multiple Parent Refs and addrs",
 			path:             ".^.^.^.^.0",
 			currentContainer: baz,
-			expectedC:        c,
+			expectedC:        root,
 		},
 		{
 			desc:             "Arbitrary Content",

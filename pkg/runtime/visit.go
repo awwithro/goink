@@ -109,7 +109,9 @@ func (s *Story) VisitTunnelDivert(t types.TunnelDivert) {
 	// Pushes the old address so we know where to return to
 	// after the function runs
 	oldAddr := s.currentAddress
-	oldAddr.Increment()
+	// TODO: Need to understand why FunctionDivert needs to increment while tunnel divert does not
+	//oldAddr.Increment()
+	log.Debugf("Pushed previous Addr of name: %s idx: %d", oldAddr.C.Name, oldAddr.I)
 	s.previousAddress.Push(oldAddr)
 	s.doDivert(t.Divert)
 }
@@ -122,7 +124,7 @@ func (s *Story) VisitVariableDivert(divert types.VariableDivert) {
 	if path, ok := p.(types.Path); ok {
 		s.moveToPath(path)
 	} else {
-		panicInvalidStackType(path, p)
+		panicInvalidStackType[types.Path](path)
 	}
 }
 
@@ -259,4 +261,5 @@ func (s *Story) glue() {
 
 func (s *Story) returnTunnel() {
 	s.currentAddress, _ = s.previousAddress.Pop()
+	log.Debugf("Tunnel Returned to Name: %s Idx: %d", s.currentAddress.C.Name, s.currentAddress.I)
 }

@@ -129,8 +129,8 @@ func panicInvalidModeTransition(current, attempted Mode) {
 	log.Panicf("Invalid Mode transition. Can't go from %s to %s", current, attempted)
 }
 
-func panicInvalidStackType[T any](expected T, actual any) {
-	log.Panicf("non %s in stack: %s, %v", reflect.TypeOf(expected), reflect.TypeOf(actual), actual)
+func panicInvalidStackType[T any](actual any) {
+	log.Panicf("non %T in stack: %T, %v", new(T), actual, actual)
 }
 
 func (s *Story) Start() {
@@ -143,10 +143,10 @@ func mustPopStack[T any](s stacks.Stack[any]) T {
 	if !ok {
 		log.Panic("Popped empty stack")
 	}
-	log.Debugf("Popped %s %v", reflect.TypeOf(val), val)
+	log.Debugf("Popped %T %v", val, val)
 	ret, ok := val.(T)
 	if !ok {
-		panicInvalidStackType[T](ret, val)
+		panicInvalidStackType[T](val)
 	}
 	return ret
 }
@@ -176,7 +176,7 @@ func (s *Story) Step() (StoryState, error) {
 			if onlyDefaults {
 				s.choose(choices[0])
 				s.state.setDone(true)
-			} else{
+			} else {
 				// we have a choice to be made, write the story so far
 				s.writeToState()
 			}
