@@ -78,12 +78,7 @@ func (s *StoryState) RecordContainer(a Address) {
 	idx := a.I
 	if c.RecordVisits() {
 		if !c.CountStartOnly() || idx == 0 {
-			// our first visit
-			if _, ok := s.visitCounts[c]; !ok {
-				s.visitCounts[c] = 0
-			} else {
-				s.visitCounts[c] += 1
-			}
+			s.visitCounts[c] += 1
 		}
 	}
 	if c.RecordTurns() {

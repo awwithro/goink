@@ -17,6 +17,7 @@ func TestFullInkStory(t *testing.T) {
 		choices         []int
 		choiceCounts    []int // expected choice counts at each point we're offered choices
 		expectedText    string
+		externalFuncs   map[string]func([]any) any
 	}{
 		{
 			desc:            "Hello World",
@@ -43,6 +44,19 @@ func TestFullInkStory(t *testing.T) {
 			choiceCounts:    []int{2, 1},
 			expectedText:    "four test\n\ntwo test\n\nthree ",
 		},
+		{
+			desc:            "External Function Fallback",
+			inkJsonFilePath: "../../examples/externalfunc.json",
+			expectedText:    "Calling Func Internal Hello world\n\n",
+		},
+		{
+			desc:            "External Function",
+			inkJsonFilePath: "../../examples/externalfunc.json",
+			expectedText:    "Calling Func External Hello world\n",
+			externalFuncs: map[string]func([]any) any{
+				"Hello": hello,
+			},
+		},
 	}
 	parsed := map[string]types.Ink{}
 	for _, tC := range testCases {
@@ -62,6 +76,13 @@ func TestFullInkStory(t *testing.T) {
 				parsed[tC.inkJsonFilePath] = ink
 			}
 			s := NewStory(ink)
+
+			// Register functions if we have them
+			if tC.externalFuncs != nil {
+				for k, v := range tC.externalFuncs {
+					s.RegisterExternalFunction(k, v)
+				}
+			}
 			s.Start()
 			choiceIdx := 0
 			var state StoryState
@@ -82,4 +103,8 @@ func TestFullInkStory(t *testing.T) {
 			assert.Equal(tC.expectedText, state.GetText())
 		})
 	}
+}
+
+func hello(x []any) any {
+	return "External Hello " + x[0].(string)
 }

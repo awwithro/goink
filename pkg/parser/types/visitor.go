@@ -19,6 +19,7 @@ type Visitor interface {
 	VisitReadCount(ReadCount)
 	VisitVariablePointer(VariablePointer)
 	VisitFunctionDivert(FunctionDivert)
+	VisitExternalFunctionDivert(ExternalFunctionDivert)
 	VisitTunnelDivert(TunnelDivert)
 }
 

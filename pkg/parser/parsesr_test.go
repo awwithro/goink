@@ -2,7 +2,6 @@ package parser
 
 import (
 	"fmt"
-	"reflect"
 	"strings"
 	"testing"
 
@@ -33,7 +32,7 @@ func printContainer(cnt *types.Container, depth int) {
 		case types.DivertTarget:
 			fmt.Printf(" DivertTarget: %s\n", typ)
 		default:
-			fmt.Printf(" %s\n", reflect.TypeOf(typ))
+			fmt.Printf(" %T\n", typ)
 		}
 	}
 	if len(cnt.SubContainers) > 0 {

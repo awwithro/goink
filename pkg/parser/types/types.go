@@ -20,6 +20,10 @@ type Ink struct {
 
 type VoidVal struct{}
 
+func (v VoidVal) String() string {
+	return ""
+}
+
 func (v VoidVal) Accept(vs Visitor) {
 	vs.VisitVoidVal(v)
 }
@@ -34,22 +38,21 @@ func (b BoolVal) Accept(v Visitor) {
 	v.VisitBoolVal(b)
 }
 
-func(b BoolVal) IsFloat()bool{
+func (b BoolVal) IsFloat() bool {
 	return false
 }
-func(b BoolVal) AsFloat() float64{
+func (b BoolVal) AsFloat() float64 {
 	if b {
 		return 1
 	}
 	return 0
 }
-func(b BoolVal) AsInt() int{
+func (b BoolVal) AsInt() int {
 	if b {
 		return 1
 	}
 	return 0
 }
-
 
 type StringVal string
 
@@ -161,8 +164,7 @@ type ExternalFunctionDivert struct {
 }
 
 func (e ExternalFunctionDivert) Accept(v Visitor) {
-	//v.ExternalFunctionDivert(d)
-	panic("not implemented")
+	v.VisitExternalFunctionDivert(e)
 }
 
 type ChoicePoint struct {

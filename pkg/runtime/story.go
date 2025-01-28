@@ -2,7 +2,6 @@ package runtime
 
 import (
 	"fmt"
-	"reflect"
 	"strings"
 
 	"github.com/awwithro/goink/pkg/parser/types"
@@ -29,6 +28,11 @@ func (a *Address) Increment() {
 	a.I++
 }
 
+type State struct {
+	mode    Mode
+	address Address
+}
+
 type Story struct {
 	ink             types.Ink
 	evaluationStack stacks.Stack[any]
@@ -37,8 +41,9 @@ type Story struct {
 	stringMarker    int //Used to track index of stack to concatenate into a string
 	state           *StoryState
 	// Where in the ink we're located
-	currentAddress  Address
-	previousAddress stacks.Stack[Address]
+	currentAddress Address
+	previousState  stacks.Stack[State]
+	extFuncs       map[string]func([]any) any
 }
 
 func NewStory(ink types.Ink) Story {
@@ -49,7 +54,8 @@ func NewStory(ink types.Ink) Story {
 		mode:            None,
 		stringMarker:    -1,
 		state:           NewStoryState(),
-		previousAddress: arraystack.New[Address](),
+		previousState:   arraystack.New[State](),
+		extFuncs:        map[string]func([]any) any{},
 	}
 	return s
 }
@@ -204,11 +210,13 @@ func (s *Story) reEnterStory() {
 			case types.EndOfSubContainer:
 				// If we've reached the end of a sub-container, this is an implicit end of the story
 				// unless there is a previous address on the stack (we're at the end of a function call)
-				if s.previousAddress.Size() > 0 {
-					s.currentAddress, _ = s.previousAddress.Pop()
+				if s.previousState.Size() > 0 {
+					prevState, _ := s.previousState.Pop()
+					s.currentAddress = prevState.address
+					s.mode = prevState.mode
 					// Assuming we're always returning from a function,
 					// this assumption likely doesn't hold up
-					s.evaluationStack.Push(types.Void)
+					s.evaluationStack.Push(types.VoidVal{})
 					s.reEnterStory()
 				} else {
 					s.endStory()
@@ -226,7 +234,7 @@ func (s *Story) reEnterStory() {
 		return
 	} else {
 		log.Debugf("Entering idx %d of Container: %v", s.currentAddress.I, s.currentAddress.C.Name)
-		log.Debugf("Item is %q, %s", s.currentAddress.C.Contents[s.currentAddress.I], reflect.TypeOf(s.currentAddress.C.Contents[s.currentAddress.I]))
+		log.Debugf("Item is %q, %T", s.currentAddress.C.Contents[s.currentAddress.I], s.currentAddress.C.Contents[s.currentAddress.I])
 		s.currentAddress.C.Contents[s.currentAddress.I].Accept(s)
 	}
 }
@@ -309,4 +317,8 @@ func (s *Story) RunContinuous() (state StoryState, err error) {
 		run = false
 	}
 	return state, err
+}
+
+func (s *Story) RegisterExternalFunction(name string, f func([]any) any) {
+	s.extFuncs[name] = f
 }

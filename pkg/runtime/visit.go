@@ -1,6 +1,7 @@
 package runtime
 
 import (
+	"slices"
 	"strings"
 
 	"github.com/awwithro/goink/pkg/parser/types"
@@ -96,24 +97,26 @@ func (s *Story) VisitDivert(divert types.Divert) {
 	s.doDivert(divert)
 }
 
-func (s *Story) VisitFunctionDivert(f types.FunctionDivert) {
+// pushes the previous address onto the stack as a return val
+// increment controls if the previous address is incremented prior to pushing
+func (s *Story) pushStackDivert(divert types.Divert, increment bool) {
 	// Pushes the old address so we know where to return to
 	// after the function runs
 	oldAddr := s.currentAddress
-	oldAddr.Increment()
-	s.previousAddress.Push(oldAddr)
-	s.doDivert(f.Divert)
+	if increment {
+		oldAddr.Increment()
+	}
+	s.previousState.Push(State{address: oldAddr, mode: s.mode})
+	s.mode = None
+	s.doDivert(divert)
+}
+
+func (s *Story) VisitFunctionDivert(f types.FunctionDivert) {
+	s.pushStackDivert(f.Divert, true)
 }
 
 func (s *Story) VisitTunnelDivert(t types.TunnelDivert) {
-	// Pushes the old address so we know where to return to
-	// after the function runs
-	oldAddr := s.currentAddress
-	// TODO: Need to understand why FunctionDivert needs to increment while tunnel divert does not
-	//oldAddr.Increment()
-	log.Debugf("Pushed previous Addr of name: %s idx: %d", oldAddr.C.Name, oldAddr.I)
-	s.previousAddress.Push(oldAddr)
-	s.doDivert(t.Divert)
+	s.pushStackDivert(t.Divert, false)
 }
 
 func (s *Story) VisitVariableDivert(divert types.VariableDivert) {
@@ -220,7 +223,7 @@ func (s *Story) VisitVarRef(v types.VarRef) {
 	} else {
 		finalVal = intermediateValue
 	}
-	log.Debugf("Pushing val %v", finalVal)
+	log.Debugf("Pushing val %v of type %T", finalVal, finalVal)
 	s.evaluationStack.Push(finalVal)
 	s.currentAddress.Increment()
 }
@@ -236,6 +239,54 @@ func (s *Story) VisitVariablePointer(v types.VariablePointer) {
 	s.evaluationStack.Push(v)
 	s.currentAddress.Increment()
 
+}
+
+func (s *Story) VisitExternalFunctionDivert(e types.ExternalFunctionDivert) {
+	if f, ok := s.extFuncs[string(e.Path)]; !ok {
+		log.Warnf("External func %s not registered, using fallback", string(e.Path))
+		s.pushStackDivert(e.Divert, true)
+	} else {
+		defer s.currentAddress.Increment()
+		args := []any{}
+		if e.Args > 0 {
+			for x := 0; x < e.Args; x++ {
+				a := mustPopStack[any](s.evaluationStack)
+				switch arg := a.(type) {
+				case types.BoolVal:
+					args = append(args, arg.AsBool())
+				case types.NumericVal:
+					if arg.IsFloat() {
+						args = append(args, arg.AsFloat())
+					} else {
+						args = append(args, arg.AsInt())
+					}
+				case types.StringVal:
+					args = append(args, arg.String())
+				default:
+					log.Panicf("Unrecognized type for external func %T", arg)
+				}
+			}
+		}
+		slices.Reverse(args)
+		res := f(args)
+		if res != nil {
+			switch val := res.(type) {
+			case int:
+				s.evaluationStack.Push(types.IntVal(val))
+			case bool:
+				s.evaluationStack.Push(types.BoolVal(val))
+			case float64:
+				s.evaluationStack.Push(types.FloatVal(val))
+			case string:
+				s.evaluationStack.Push(types.StringVal(val))
+			default:
+				log.Panicf("unrecognized return value for external func %T", val)
+			}
+		} else {
+			log.Debug("No return val from external func, pushing void")
+			s.evaluationStack.Push(types.VoidVal{})
+		}
+	}
 }
 
 func (s *Story) getVariablePointerValue(p types.VariablePointer) any {
@@ -260,6 +311,8 @@ func (s *Story) glue() {
 }
 
 func (s *Story) returnTunnel() {
-	s.currentAddress, _ = s.previousAddress.Pop()
+	oldState, _ := s.previousState.Pop()
+	s.currentAddress = oldState.address
+	s.mode = oldState.mode
 	log.Debugf("Tunnel Returned to Name: %s Idx: %d", s.currentAddress.C.Name, s.currentAddress.I)
 }

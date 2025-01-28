@@ -1,0 +1,49 @@
+{
+    "inkVersion": 21,
+    "root": [
+        [
+            "^Calling Func ",
+            "ev",
+            "str",
+            "^world",
+            "/str",
+            {
+                "x()": "Hello",
+                "exArgs": 1
+            },
+            "out",
+            "/ev",
+            "\n",
+            "end",
+            [
+                "done",
+                {
+                    "#f": 5,
+                    "#n": "g-0"
+                }
+            ],
+            null
+        ],
+        "done",
+        {
+            "Hello": [
+                {
+                    "temp=": "world"
+                },
+                "^Internal Hello ",
+                "ev",
+                {
+                    "VAR?": "world"
+                },
+                "out",
+                "/ev",
+                "\n",
+                {
+                    "#f": 1
+                }
+            ],
+            "#f": 1
+        }
+    ],
+    "listDefs": {}
+}

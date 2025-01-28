@@ -48,8 +48,8 @@ func (c *Container) unmarshalString(str string) error {
 		c.Contents = append(c.Contents, cmd)
 	} else if op, ok := IsOperator(str); ok {
 		c.Contents = append(c.Contents, Operator(op))
-	} else{
-		log.Panic("unrecognized string ",str)
+	} else {
+		log.Panic("unrecognized string ", str)
 	}
 	return nil
 }
@@ -178,7 +178,7 @@ func (c *Container) unmarshalMaps(obj map[string]any) {
 				conditional = i.(bool)
 			}
 			if i, ok := obj["exArgs"]; ok {
-				conditional = i.(bool)
+				args = int(i.(float64))
 			}
 			c.Contents = append(c.Contents, ExternalFunctionDivert{
 				Divert: Divert{
