@@ -1,0 +1,42 @@
+{
+    "inkVersion": 21,
+    "root": [
+        [
+            [
+                "done",
+                {
+                    "#f": 5,
+                    "#n": "g-0"
+                }
+            ],
+            null
+        ],
+        "done",
+        {
+            "global decl": [
+                "ev",
+                {
+                    "list": {
+                        "DoctorsInSurgery.Adams": 1,
+                        "DoctorsInSurgery.Bernard": 2,
+                        "DoctorsInSurgery.Cartwright": 3
+                    }
+                },
+                {
+                    "VAR=": "DoctorsInSurgery"
+                },
+                "/ev",
+                "end",
+                null
+            ],
+            "#f": 1
+        }
+    ],
+    "listDefs": {
+        "DoctorsInSurgery": {
+            "Adams": 1,
+            "Bernard": 2,
+            "Cartwright": 3
+        }
+    }
+}
