@@ -1,6 +1,8 @@
 package types
 
-import "strconv"
+import (
+	"strconv"
+)
 
 var _ Truthy = IntVal(0)
 var _ Truthy = FloatVal(0)
@@ -13,9 +15,31 @@ const (
 	GlobalVarKey = "global decl"
 )
 
+type Truthy interface {
+	AsBool() bool
+}
+
+type NumericVal interface {
+	IsFloat() bool
+	AsInt() int
+	AsFloat() float64
+	Truthy
+	Comparable[NumericVal]
+}
+
+type Comparable[T any] interface {
+	Equals(T) bool
+	NotEquals(T) bool
+	LT(T) bool
+	LTE(T) bool
+	GT(T) bool
+	GTE(T) bool
+}
+
 type Ink struct {
 	InkVersion int       `json:"inkVersion"`
 	Root       Container `json:"root"`
+	ListDefs   ListDefs  `json:"listDefs"`
 }
 
 type VoidVal struct{}
@@ -36,6 +60,28 @@ func (b BoolVal) AsBool() bool {
 
 func (b BoolVal) Accept(v Visitor) {
 	v.VisitBoolVal(b)
+}
+
+func (b BoolVal) Equals(other NumericVal) bool {
+	return b.AsBool() == other.AsBool()
+}
+
+func (b BoolVal) NotEquals(other NumericVal) bool {
+	return b.AsBool() == other.AsBool()
+}
+func (b BoolVal) LT(other NumericVal) bool {
+	return b.AsInt() < other.AsInt()
+}
+
+func (b BoolVal) LTE(other NumericVal) bool {
+	return b.AsInt() <= other.AsInt()
+}
+func (b BoolVal) GT(other NumericVal) bool {
+	return b.AsInt() > other.AsInt()
+}
+
+func (b BoolVal) GTE(other NumericVal) bool {
+	return b.AsInt() >= other.AsInt()
 }
 
 func (b BoolVal) IsFloat() bool {
@@ -71,27 +117,6 @@ func (i IntVal) Accept(v Visitor) {
 func (i IntVal) String() string {
 	return strconv.Itoa(int(i))
 }
-
-type FloatVal float64
-
-func (f FloatVal) Accept(v Visitor) {
-	v.VisitFloatVal(f)
-}
-func (f FloatVal) String() string {
-	return strconv.FormatFloat(float64(f), 'f', -1, 64)
-}
-
-type Truthy interface {
-	AsBool() bool
-}
-
-type NumericVal interface {
-	IsFloat() bool
-	AsInt() int
-	AsFloat() float64
-	Truthy
-}
-
 func (i IntVal) IsFloat() bool {
 	return false
 }
@@ -105,6 +130,37 @@ func (i IntVal) AsBool() bool {
 	return i != 0
 }
 
+func (i IntVal) Equals(other NumericVal) bool {
+	return i.AsInt() == other.AsInt()
+}
+
+func (i IntVal) NotEquals(other NumericVal) bool {
+	return i.AsInt() == other.AsInt()
+}
+func (i IntVal) LT(other NumericVal) bool {
+	return i.AsInt() < other.AsInt()
+}
+
+func (i IntVal) LTE(other NumericVal) bool {
+	return i.AsInt() <= other.AsInt()
+}
+func (i IntVal) GT(other NumericVal) bool {
+	return i.AsInt() > other.AsInt()
+}
+
+func (i IntVal) GTE(other NumericVal) bool {
+	return i.AsInt() >= other.AsInt()
+}
+
+type FloatVal float64
+
+func (f FloatVal) Accept(v Visitor) {
+	v.VisitFloatVal(f)
+}
+func (f FloatVal) String() string {
+	return strconv.FormatFloat(float64(f), 'f', -1, 64)
+}
+
 func (f FloatVal) IsFloat() bool {
 	return true
 }
@@ -116,6 +172,29 @@ func (f FloatVal) AsFloat() float64 {
 }
 func (i FloatVal) AsBool() bool {
 	return i != 0
+}
+
+func (f FloatVal) Equals(other NumericVal) bool {
+	return f.AsFloat() == other.AsFloat()
+}
+
+func (f FloatVal) NotEquals(other NumericVal) bool {
+	return f.AsFloat() == other.AsFloat()
+}
+
+func (f FloatVal) LT(other NumericVal) bool {
+	return f.AsFloat() < other.AsFloat()
+}
+
+func (f FloatVal) LTE(other NumericVal) bool {
+	return f.AsFloat() <= other.AsFloat()
+}
+func (f FloatVal) GT(other NumericVal) bool {
+	return f.AsFloat() > other.AsFloat()
+}
+
+func (f FloatVal) GTE(other NumericVal) bool {
+	return f.AsFloat() >= other.AsFloat()
 }
 
 type DivertTarget Path

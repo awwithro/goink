@@ -223,8 +223,22 @@ func (c *Container) unmarshalMaps(obj map[string]any) {
 		case "CNT?":
 			val := v.(string)
 			c.Contents = append(c.Contents, ReadCount(val))
+		case "list":
+			val := v.(map[string]any)
+			lst := make(List)
+			for k, v := range val {
+				lst[k] = v.(int)
+			}
+			var origin []string
+			if o, ok := obj["origin"]; ok {
+				origin = o.([]string)
+			}
+			c.Contents = append(c.Contents, ListInit{
+				List:    lst,
+				Origins: origin,
+			})
 		// parsed as part of other key
-		case "var", "c", "exArgs", "ci", "flg", "re":
+		case "var", "c", "exArgs", "ci", "flg", "re", "origins":
 			continue
 		default:
 			log.Warn("Unrecognized key ", k)

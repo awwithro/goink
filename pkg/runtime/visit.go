@@ -316,3 +316,35 @@ func (s *Story) returnTunnel() {
 	s.mode = oldState.mode
 	log.Debugf("Tunnel Returned to Name: %s Idx: %d", s.currentAddress.C.Name, s.currentAddress.I)
 }
+
+func (s *Story) VisitListInit(l types.ListInit) {
+	log.Debugf("Visiting ListInit %v", l)
+	list := s.initializeList(l)
+	s.evaluationStack.Push(list)
+}
+
+func (s *Story) initializeList(init types.ListInit) (list types.ListVal) {
+	list = make(types.ListVal)
+	for _, name := range init.Origins {
+		if def, ok := s.ink.ListDefs[name]; !ok {
+			log.Panic("origin referenced an undefined list ", name)
+		} else {
+			for k, v := range def {
+				list[k] = types.ListValItem{
+					Name:   k,
+					Value:  v,
+					Parent: name,
+				}
+			}
+		}
+	}
+	for k, v := range init.List {
+		segs := strings.Split(k, ".")
+		list[segs[1]] = types.ListValItem{
+			Name:   segs[1],
+			Value:  v,
+			Parent: segs[0],
+		}
+	}
+	return list
+}

@@ -136,6 +136,7 @@ func panicInvalidModeTransition(current, attempted Mode) {
 	log.Panicf("Invalid Mode transition. Can't go from %s to %s", current, attempted)
 }
 
+// Type param is the type that was expected
 func panicInvalidStackType[T any](actual any) {
 	log.Panicf("non %T in stack: %T, %v", new(T), actual, actual)
 }

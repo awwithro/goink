@@ -19,52 +19,105 @@ func (s *Story) VisitOperator(op types.Operator) {
 			s.evaluationStack.Push(unaryOperator(val, not))
 		}
 	} else {
-		val2 := mustPopStack[types.NumericVal](s.evaluationStack)
-		val1 := mustPopStack[types.NumericVal](s.evaluationStack)
+		val2 := mustPopStack[any](s.evaluationStack)
+		val1 := mustPopStack[any](s.evaluationStack)
 		log.Debug("Operating on ", val1, val2)
-		switch op {
-		case types.Plus:
-			s.evaluationStack.Push(binaryOperator(val1, val2, add))
-		case types.Minus:
-			s.evaluationStack.Push(binaryOperator(val1, val2, sub))
-		case types.Multiply:
-			s.evaluationStack.Push(binaryOperator(val1, val2, mult))
-		case types.Divide:
-			s.evaluationStack.Push(binaryOperator(val1, val2, div))
-		case types.Modulus:
-			s.evaluationStack.Push(binaryOperator(val1, val2, mod))
-		case types.Equal:
-			s.evaluationStack.Push(binaryOperator(val1, val2, eq))
-		case types.NotEqual:
-			s.evaluationStack.Push(binaryOperator(val1, val2, neq))
-		case types.LessThan:
-			s.evaluationStack.Push(binaryOperator(val1, val2, lt))
-		case types.LessThanEqual:
-			s.evaluationStack.Push(binaryOperator(val1, val2, lte))
-		case types.GreaterThan:
-			s.evaluationStack.Push(binaryOperator(val1, val2, gt))
-		case types.GreaterThanEqual:
-			s.evaluationStack.Push(binaryOperator(val1, val2, gte))
-		case types.And:
-			s.evaluationStack.Push(binaryOperator(val1, val2, and))
-		case types.Or:
-			s.evaluationStack.Push(binaryOperator(val1, val2, or))
-		case types.Min:
-			s.evaluationStack.Push(binaryOperator(val1, val2, min))
-		case types.Max:
-			s.evaluationStack.Push(binaryOperator(val1, val2, max))
+		switch v1 := val1.(type) {
+		case types.NumericVal:
+			v2, ok := val2.(types.NumericVal)
+			if !ok {
+				panicInvalidStackType[types.NumericVal](val2)
+			}
+			switch op {
+			case types.Plus:
+				s.evaluationStack.Push(binaryNumericOperator(v1, v2, add))
+			case types.Minus:
+				s.evaluationStack.Push(binaryNumericOperator(v1, v2, sub))
+			case types.Multiply:
+				s.evaluationStack.Push(binaryNumericOperator(v1, v2, mult))
+			case types.Divide:
+				s.evaluationStack.Push(binaryNumericOperator(v1, v2, div))
+			case types.Modulus:
+				s.evaluationStack.Push(binaryNumericOperator(v1, v2, mod))
+			// Can Min Max work on lists?
+			case types.Min:
+				s.evaluationStack.Push(binaryNumericOperator(v1, v2, min))
+			case types.Max:
+				s.evaluationStack.Push(binaryNumericOperator(v1, v2, max))
+			case types.Equal:
+				s.evaluationStack.Push(binaryComparableOperator(v1, v2, eq))
+			case types.NotEqual:
+				s.evaluationStack.Push(binaryComparableOperator(v1, v2, neq))
+			case types.LessThan:
+				s.evaluationStack.Push(binaryComparableOperator(v1, v2, lt))
+			case types.LessThanEqual:
+				s.evaluationStack.Push(binaryComparableOperator(v1, v2, lte))
+			case types.GreaterThan:
+				s.evaluationStack.Push(binaryComparableOperator(v1, v2, gt))
+			case types.GreaterThanEqual:
+				s.evaluationStack.Push(binaryComparableOperator(v1, v2, gte))
+			case types.And:
+				s.evaluationStack.Push(binaryBoolOperator(v1, v2, and))
+			case types.Or:
+				s.evaluationStack.Push(binaryBoolOperator(v1, v2, or))
+
+			}
+
+		case types.Truthy:
+			v2, ok := val2.(types.Truthy)
+			if !ok {
+				panicInvalidStackType[types.Truthy](val2)
+			}
+			switch op {
+			case types.And:
+				s.evaluationStack.Push(binaryBoolOperator(v1, v2, and))
+			case types.Or:
+				s.evaluationStack.Push(binaryBoolOperator(v1, v2, or))
+
+			}
+
+		case types.ListValItem:
+			v2, ok := val2.(types.ListValItem)
+			if !ok {
+				panicInvalidStackType[types.Truthy](val2)
+			}
+			switch op {
+			case types.Equal:
+				s.evaluationStack.Push(binaryComparableOperator(v1, v2, eq))
+			case types.NotEqual:
+				s.evaluationStack.Push(binaryComparableOperator(v1, v2, neq))
+			case types.LessThan:
+				s.evaluationStack.Push(binaryComparableOperator(v1, v2, lt))
+			case types.LessThanEqual:
+				s.evaluationStack.Push(binaryComparableOperator(v1, v2, lte))
+			case types.GreaterThan:
+				s.evaluationStack.Push(binaryComparableOperator(v1, v2, gt))
+			case types.GreaterThanEqual:
+				s.evaluationStack.Push(binaryComparableOperator(v1, v2, gte))
+
+			}
 		}
 
 	}
 	s.currentAddress.Increment()
 }
 
-func binaryOperator(x, y types.NumericVal, f func(x, y float64) float64) types.NumericVal {
+func binaryNumericOperator(x, y types.NumericVal, f func(x, y float64) float64) types.NumericVal {
 	res := f(x.AsFloat(), y.AsFloat())
 	if x.IsFloat() || y.IsFloat() {
 		return types.FloatVal(res)
 	}
 	return types.IntVal(res)
+}
+
+func binaryComparableOperator[T any](x, y types.Comparable[T], f func(x, y types.Comparable[T]) bool) types.BoolVal {
+	res := f(x, y)
+	return types.BoolVal(res)
+}
+
+func binaryBoolOperator(x, y types.Truthy, f func(x, y bool) bool) types.BoolVal {
+	res := f(x.AsBool(), y.AsBool())
+	return types.BoolVal(res)
 }
 
 func unaryOperator(x types.NumericVal, f func(x float64) float64) types.NumericVal {
@@ -89,69 +142,32 @@ func sub(x, y float64) float64 {
 func mod(x, y float64) float64 {
 	return float64(int(x) % int(y))
 }
-func eq(x, y float64) float64 {
-	if x == y {
-		return 1
-	}
-	return 0
+func eq[T any](x, y types.Comparable[T]) bool {
+	return x.Equals(y.(T))
 }
-func neq(x, y float64) float64 {
-	if x != y {
-		return 1
-	}
-	return 0
+func neq[T any](x, y types.Comparable[T]) bool {
+	return x.NotEquals(y.(T))
 }
-func lt(x, y float64) float64 {
-	if x < y {
-		return 1
-	}
-	return 0
+func lt[T any](x, y types.Comparable[T]) bool {
+	return x.LT(y.(T))
 }
-func lte(x, y float64) float64 {
-	if x <= y {
-		return 1
-	}
-	return 0
-}
-func gt(x, y float64) float64 {
-	if x > y {
-		return 1
-	}
-	return 0
+func lte[T any](x, y types.Comparable[T]) bool {
+	return x.LTE(y.(T))
 }
 
-func gte(x, y float64) float64 {
-	if x >= y {
-		return 1
-	}
-	return 0
+func gt[T any](x, y types.Comparable[T]) bool {
+	return x.GT(y.(T))
 }
 
-func and(x, y float64) float64 {
-	var boolX, boolY bool
-	if x != 0 {
-		boolX = true
-	}
-	if y != 0 {
-		boolY = true
-	}
-	if boolX && boolY {
-		return 1
-	}
-	return 0
+func gte[T any](x, y types.Comparable[T]) bool {
+	return x.GTE(y.(T))
 }
-func or(x, y float64) float64 {
-	var boolX, boolY bool
-	if x != 0 {
-		boolX = true
-	}
-	if y != 0 {
-		boolY = true
-	}
-	if boolX || boolY {
-		return 1
-	}
-	return 0
+
+func and(x, y bool) bool {
+	return x && y
+}
+func or(x, y bool) bool {
+	return x || y
 }
 func not(x float64) float64 {
 	if x == 0 {
