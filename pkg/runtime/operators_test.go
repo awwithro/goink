@@ -75,6 +75,24 @@ func Test(t *testing.T) {
 			op:       types.Equal,
 			expected: types.BoolVal(false),
 		},
+		{
+			desc:     "Test Floor",
+			stack:    []types.Acceptor{types.FloatVal(-4.8)},
+			op:       types.Floor,
+			expected: types.IntVal(-5),
+		},
+		{
+			desc:     "Test Int",
+			stack:    []types.Acceptor{types.FloatVal(-4.8)},
+			op:       types.Int,
+			expected: types.IntVal(-4),
+		},
+		{
+			desc:     "Test Float",
+			stack:    []types.Acceptor{types.IntVal(4)},
+			op:       types.Float,
+			expected: types.FloatVal(4.0),
+		},
 	}
 	for _, tC := range testCases {
 		t.Run(tC.desc, func(t *testing.T) {

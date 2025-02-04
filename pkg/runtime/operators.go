@@ -19,6 +19,12 @@ func (s *Story) VisitOperator(op types.Operator) {
 				s.evaluationStack.Push(unaryOperator(v, negate))
 			case types.Not:
 				s.evaluationStack.Push(unaryOperator(v, not))
+			case types.Int:
+				s.evaluationStack.Push(types.IntVal(v.AsInt()))
+			case types.Float:
+				s.evaluationStack.Push(types.FloatVal(v.AsFloat()))
+			case types.Floor:
+				s.evaluationStack.Push(types.IntVal(int(math.Floor(v.AsFloat()))))
 			default:
 				s.Panicf("Unimplemented Operator: %d for %T", op, val)
 			}
@@ -130,7 +136,7 @@ func (s *Story) VisitOperator(op types.Operator) {
 				s.evaluationStack.Push(binaryComparableOperator(v1, v2, gte))
 			case types.Plus:
 				v2 := val2.(types.IntVal)
-				for range v2.AsInt(){
+				for range v2.AsInt() {
 					v1 = v1.Next
 				}
 				s.evaluationStack.Push(v1)
