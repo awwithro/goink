@@ -7,9 +7,9 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestList(t *testing.T) {
+func TestInkWithList(t *testing.T) {
 	assert := assert.New(t)
-	js, err := os.ReadFile("../../examples/list.json")
+	js, err := os.ReadFile("../../examples/list1.json")
 	assert.NoError(err)
 	ink := Parse(js)
 	l, ok := ink.ListDefs["kettleState"]

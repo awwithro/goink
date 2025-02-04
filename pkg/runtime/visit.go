@@ -11,9 +11,10 @@ import (
 func (s *Story) VisitString(str types.StringVal) {
 	log.Debugf("Visiting String: \"%s\"", strings.Replace(str.String(), "\n", "\\n", -1))
 	if s.mode == Eval {
-		log.Panicf("String encountered while in Eval mode: %s", str)
+		s.evaluationStack.Push(str)
+	} else {
+		s.outputBuffer.Push(str.String())
 	}
-	s.outputBuffer.Push(str.String())
 	s.currentAddress.Increment()
 }
 func (s *Story) VisitControlCommand(cmd types.ControlCommand) {
@@ -127,7 +128,7 @@ func (s *Story) VisitVariableDivert(divert types.VariableDivert) {
 	if path, ok := p.(types.Path); ok {
 		s.moveToPath(path)
 	} else {
-		panicInvalidStackType[types.Path](path)
+		panicInvalidStackType[types.Path](path, s)
 	}
 }
 
@@ -321,30 +322,37 @@ func (s *Story) VisitListInit(l types.ListInit) {
 	log.Debugf("Visiting ListInit %v", l)
 	list := s.initializeList(l)
 	s.evaluationStack.Push(list)
+	s.currentAddress.Increment()
+}
+
+func (s *Story) VisitListValItem(l *types.ListValItem) {
+	log.Debugf("Visiting ListValItem %v", l)
+	s.evaluationStack.Push(l)
+	s.currentAddress.Increment()
+}
+
+func (s *Story) VisitListVal(l types.ListVal) {
+	log.Debugf("Visiting ListVal %v", l)
+	s.evaluationStack.Push(l)
+	s.currentAddress.Increment()
 }
 
 func (s *Story) initializeList(init types.ListInit) (list types.ListVal) {
 	list = make(types.ListVal)
 	for _, name := range init.Origins {
-		if def, ok := s.ink.ListDefs[name]; !ok {
+		if def, ok := s.computedLists[name]; !ok {
 			log.Panic("origin referenced an undefined list ", name)
 		} else {
 			for k, v := range def {
-				list[k] = types.ListValItem{
-					Name:   k,
-					Value:  v,
-					Parent: name,
-				}
+				list[k] = v
 			}
 		}
 	}
-	for k, v := range init.List {
-		segs := strings.Split(k, ".")
-		list[segs[1]] = types.ListValItem{
-			Name:   segs[1],
-			Value:  v,
-			Parent: segs[0],
-		}
+	// the list setup is odd, it references the global list name with the item
+	// name as well as the item val
+	for name := range init.List {
+		segs := strings.Split(name, ".")
+		list[segs[1]] = s.computedLists[segs[0]][segs[1]]
 	}
 	return list
 }

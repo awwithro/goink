@@ -22,6 +22,8 @@ type Visitor interface {
 	VisitExternalFunctionDivert(ExternalFunctionDivert)
 	VisitTunnelDivert(TunnelDivert)
 	VisitListInit(ListInit)
+	VisitListVal(ListVal)
+	VisitListValItem(*ListValItem)
 }
 
 type Acceptor interface {

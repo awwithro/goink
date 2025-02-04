@@ -2,6 +2,14 @@
     "inkVersion": 21,
     "root": [
         [
+            "^The Kettle is ",
+            "ev",
+            {
+                "VAR?": "kettleState"
+            },
+            "out",
+            "/ev",
+            "\n",
             [
                 "done",
                 {
@@ -16,10 +24,9 @@
             "global decl": [
                 "ev",
                 {
-                    "list": {},
-                    "origins": [
-                        "kettleState"
-                    ]
+                    "list": {
+                        "kettleState.cold": 1
+                    }
                 },
                 {
                     "VAR=": "kettleState"

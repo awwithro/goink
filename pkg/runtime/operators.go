@@ -10,14 +10,44 @@ import (
 func (s *Story) VisitOperator(op types.Operator) {
 	log.Debugf("Visiting Operator: %d", op)
 	if op.IsUnary() {
-		val := mustPopStack[types.NumericVal](s.evaluationStack)
-		log.Debug("Operating on ", val)
-		switch op {
-		case types.Negate:
-			s.evaluationStack.Push(unaryOperator(val, negate))
-		case types.Not:
-			s.evaluationStack.Push(unaryOperator(val, not))
+		val := mustPopStack[any](s.evaluationStack)
+		log.Debugf("Operating on %T: %v", val, val)
+		switch v := val.(type) {
+		case types.NumericVal:
+			switch op {
+			case types.Negate:
+				s.evaluationStack.Push(unaryOperator(v, negate))
+			case types.Not:
+				s.evaluationStack.Push(unaryOperator(v, not))
+			default:
+				s.Panicf("Unimplemented Operator: %d for %T", op, val)
+			}
+		case types.ListVal:
+			switch op {
+			case types.ListMin:
+				s.evaluationStack.Push(v.Min())
+			case types.ListMax:
+				s.evaluationStack.Push(v.Max())
+			case types.ListCount:
+				s.evaluationStack.Push(types.IntVal(v.Count()))
+			case types.ListRandom:
+				s.evaluationStack.Push(v.Random())
+			default:
+				s.Panicf("Unimplemented Operator: %d for %T", op, val)
+			}
+		case *types.ListValItem:
+			switch op {
+			case types.ListMin:
+				s.evaluationStack.Push(types.StringVal(v.Name))
+			case types.ListValue:
+				s.evaluationStack.Push(types.IntVal(v.Value))
+			default:
+				s.Panicf("Unimplemented Operator: %d for %T", op, val)
+			}
+		default:
+			s.Panicf("no unary operation implemented for %T", val)
 		}
+
 	} else {
 		val2 := mustPopStack[any](s.evaluationStack)
 		val1 := mustPopStack[any](s.evaluationStack)
@@ -26,7 +56,7 @@ func (s *Story) VisitOperator(op types.Operator) {
 		case types.NumericVal:
 			v2, ok := val2.(types.NumericVal)
 			if !ok {
-				panicInvalidStackType[types.NumericVal](val2)
+				panicInvalidStackType[types.NumericVal](val2, s)
 			}
 			switch op {
 			case types.Plus:
@@ -60,42 +90,73 @@ func (s *Story) VisitOperator(op types.Operator) {
 				s.evaluationStack.Push(binaryBoolOperator(v1, v2, and))
 			case types.Or:
 				s.evaluationStack.Push(binaryBoolOperator(v1, v2, or))
-
+			default:
+				s.Panicf("Unimplemented Operator: %d", op)
 			}
 
 		case types.Truthy:
 			v2, ok := val2.(types.Truthy)
 			if !ok {
-				panicInvalidStackType[types.Truthy](val2)
+				panicInvalidStackType[types.Truthy](val2, s)
 			}
 			switch op {
 			case types.And:
 				s.evaluationStack.Push(binaryBoolOperator(v1, v2, and))
 			case types.Or:
 				s.evaluationStack.Push(binaryBoolOperator(v1, v2, or))
-
+			default:
+				s.Panicf("Unimplemented Operator: %d", op)
 			}
 
-		case types.ListValItem:
-			v2, ok := val2.(types.ListValItem)
-			if !ok {
-				panicInvalidStackType[types.Truthy](val2)
-			}
+		case *types.ListValItem:
 			switch op {
 			case types.Equal:
+				v2 := val2.(*types.ListValItem)
 				s.evaluationStack.Push(binaryComparableOperator(v1, v2, eq))
 			case types.NotEqual:
+				v2 := val2.(*types.ListValItem)
 				s.evaluationStack.Push(binaryComparableOperator(v1, v2, neq))
 			case types.LessThan:
+				v2 := val2.(*types.ListValItem)
 				s.evaluationStack.Push(binaryComparableOperator(v1, v2, lt))
 			case types.LessThanEqual:
+				v2 := val2.(*types.ListValItem)
 				s.evaluationStack.Push(binaryComparableOperator(v1, v2, lte))
 			case types.GreaterThan:
+				v2 := val2.(*types.ListValItem)
 				s.evaluationStack.Push(binaryComparableOperator(v1, v2, gt))
 			case types.GreaterThanEqual:
+				v2 := val2.(*types.ListValItem)
 				s.evaluationStack.Push(binaryComparableOperator(v1, v2, gte))
-
+			case types.Plus:
+				v2 := val2.(types.IntVal)
+				for range v2.AsInt(){
+					v1 = v1.Next
+				}
+				s.evaluationStack.Push(v1)
+			default:
+				s.Panicf("Unimplemented Operator: %d", op)
+				// case Add, Sub
+				// Need to use the add operator to increment the list by a number
 			}
+		// Odd case, a string and int are used by listInt to get the position from a list
+		// don't know why a VAR? operator isn't used. NEEDS TO GET THE ORIGINAL GLOBAL DEF
+		case types.StringVal:
+			v2, ok := val2.(types.IntVal)
+			if !ok {
+				panicInvalidStackType[types.IntVal](val2, s)
+			}
+			switch op {
+			case types.ListInt:
+				lst := s.computedLists[v1.String()]
+				s.evaluationStack.Push(lst.AsList()[v2.AsInt()-1]) // Not Zero Indexed!
+
+			default:
+				s.Panicf("Unimplemented Operator: %d for %T and %T", op, val1, val2)
+			}
+
+		default:
+			s.Panicf("Unimplemented Type: %T for Operation: %d", val1, op)
 		}
 
 	}

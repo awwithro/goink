@@ -64,14 +64,14 @@ func Test(t *testing.T) {
 			expected: types.FloatVal(5),
 		},
 		{
-			desc:     "Test ListValueItems",
-			stack:    []types.Acceptor{types.ListValItem{Name: "test", Parent: "test", Value: 1}, types.ListValItem{Name: "test", Parent: "test", Value: 1}},
+			desc:     "Test ListValueItems Equal",
+			stack:    []types.Acceptor{&types.ListValItem{Name: "test", Parent: nil, Value: 1}, &types.ListValItem{Name: "test", Parent: nil, Value: 1}},
 			op:       types.Equal,
 			expected: types.BoolVal(true),
 		},
 		{
-			desc:     "Test ListValueItems",
-			stack:    []types.Acceptor{types.ListValItem{Name: "test", Parent: "test", Value: 1}, types.ListValItem{Name: "test", Parent: "other", Value: 1}},
+			desc:     "Test ListValueItems Not Equal",
+			stack:    []types.Acceptor{&types.ListValItem{Name: "test", Parent:nil, Value: 1}, &types.ListValItem{Name: "test", Parent: nil, Value: 2}},
 			op:       types.Equal,
 			expected: types.BoolVal(false),
 		},

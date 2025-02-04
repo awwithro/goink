@@ -58,6 +58,13 @@ func (b BoolVal) AsBool() bool {
 	return bool(b)
 }
 
+func (b BoolVal)String()string{
+	if b{
+		return "true"
+	}
+	return "false"
+}
+
 func (b BoolVal) Accept(v Visitor) {
 	v.VisitBoolVal(b)
 }

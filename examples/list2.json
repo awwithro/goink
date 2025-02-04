@@ -2,6 +2,133 @@
     "inkVersion": 21,
     "root": [
         [
+            "ev",
+            {
+                "VAR?": "test"
+            },
+            "out",
+            "/ev",
+            "\n",
+            "ev",
+            {
+                "VAR?": "test.one"
+            },
+            "/ev",
+            {
+                "VAR=": "test",
+                "re": true
+            },
+            "ev",
+            {
+                "VAR?": "test"
+            },
+            {
+                "VAR?": "test.one"
+            },
+            "==",
+            "out",
+            "/ev",
+            "\n",
+            "^get the representation of a list object: ",
+            "ev",
+            {
+                "VAR?": "test.one"
+            },
+            "out",
+            "/ev",
+            "\n",
+            "ev",
+            {
+                "VAR?": "idx"
+            },
+            "out",
+            "/ev",
+            "\n",
+            "^get the value of a list element: ",
+            "ev",
+            {
+                "VAR?": "test.three"
+            },
+            "LIST_VALUE",
+            "out",
+            "/ev",
+            "\n",
+            "ev",
+            {
+                "list": {
+                    "third.one": 2,
+                    "test.two": 2,
+                    "other.four": 4
+                }
+            },
+            "/ev",
+            {
+                "VAR=": "test",
+                "re": true
+            },
+            "^compare two list objects: ",
+            "ev",
+            {
+                "VAR?": "test.three"
+            },
+            {
+                "VAR?": "other.three"
+            },
+            "==",
+            "out",
+            "/ev",
+            "\n",
+            "ev",
+            {
+                "VAR?": "other.three"
+            },
+            "/ev",
+            {
+                "VAR=": "other",
+                "re": true
+            },
+            "ev",
+            "^test",
+            1,
+            "listInt",
+            "out",
+            "/ev",
+            "\n",
+            "^Pre-Increment ",
+            "ev",
+            {
+                "VAR?": "other"
+            },
+            "out",
+            "/ev",
+            "\n",
+            "ev",
+            {
+                "VAR?": "other"
+            },
+            1,
+            "+",
+            {
+                "VAR=": "other",
+                "re": true
+            },
+            "/ev",
+            "^Post increment ",
+            "ev",
+            {
+                "VAR?": "other"
+            },
+            "out",
+            "/ev",
+            "\n",
+            "ev",
+            {
+                "VAR?": "other"
+            },
+            "LIST_MIN",
+            "out",
+            "/ev",
+            "\n",
             [
                 "done",
                 {
@@ -17,13 +144,36 @@
                 "ev",
                 {
                     "list": {
-                        "DoctorsInSurgery.Adams": 1,
-                        "DoctorsInSurgery.Bernard": 2,
-                        "DoctorsInSurgery.Cartwright": 3
+                        "test.three": 3,
+                        "test.six": 4
                     }
                 },
                 {
-                    "VAR=": "DoctorsInSurgery"
+                    "VAR=": "test"
+                },
+                {
+                    "list": {},
+                    "origins": [
+                        "other"
+                    ]
+                },
+                {
+                    "VAR=": "other"
+                },
+                {
+                    "list": {},
+                    "origins": [
+                        "third"
+                    ]
+                },
+                {
+                    "VAR=": "third"
+                },
+                {
+                    "VAR?": "test.two"
+                },
+                {
+                    "VAR=": "idx"
                 },
                 "/ev",
                 "end",
@@ -33,10 +183,21 @@
         }
     ],
     "listDefs": {
-        "DoctorsInSurgery": {
-            "Adams": 1,
-            "Bernard": 2,
-            "Cartwright": 3
+        "test": {
+            "one": 1,
+            "two": 2,
+            "three": 3,
+            "six": 4
+        },
+        "other": {
+            "four": 4,
+            "five": 5,
+            "three": 3
+        },
+        "third": {
+            "one": 2,
+            "seven": 3,
+            "eight": 4
         }
     }
 }

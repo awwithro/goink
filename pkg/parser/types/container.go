@@ -225,9 +225,9 @@ func (c *Container) unmarshalMaps(obj map[string]any) {
 			c.Contents = append(c.Contents, ReadCount(val))
 		case "list":
 			val := v.(map[string]any)
-			lst := make(List)
+			lst := make(listDef)
 			for k, v := range val {
-				lst[k] = v.(int)
+				lst[k] = int(v.(float64))
 			}
 			var origin []string
 			if o, ok := obj["origin"]; ok {

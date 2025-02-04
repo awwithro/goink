@@ -57,6 +57,26 @@ func TestFullInkStory(t *testing.T) {
 				"Hello": hello,
 			},
 		},
+		{
+			desc:            "Basic lists",
+			inkJsonFilePath: "../../examples/list1.json",
+			expectedText:    "The Kettle is cold\n",
+		},
+		{
+			desc:            "Complex lists",
+			inkJsonFilePath: "../../examples/list2.json",
+			expectedText:   `three, six
+true
+get the representation of a list object: one
+two
+get the value of a list element: 3
+compare two list objects: false
+one
+Pre-Increment three
+Post increment four
+four
+`,
+		},
 	}
 	parsed := map[string]types.Ink{}
 	for _, tC := range testCases {
