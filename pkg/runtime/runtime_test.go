@@ -65,7 +65,7 @@ func TestFullInkStory(t *testing.T) {
 		{
 			desc:            "Complex lists",
 			inkJsonFilePath: "../../examples/list2.json",
-			expectedText:   `three, six
+			expectedText:   `three,six
 true
 get the representation of a list object: one
 two
@@ -76,6 +76,11 @@ Pre-Increment three
 Post increment four
 four
 `,
+		},
+		{
+			desc:            "List All Func",
+			inkJsonFilePath: "../../examples/all.json",
+			expectedText:    "a,f\n\na,e,b,f,c,g,d,h,e,i,j\n",
 		},
 	}
 	parsed := map[string]types.Ink{}

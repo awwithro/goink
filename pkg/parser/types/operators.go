@@ -25,16 +25,18 @@ var operatorMap = map[string]Operator{
 	"LIST_MAX":    ListMax,
 	"LIST_COUNT":  ListCount,
 	"LIST_RANDOM": ListRandom,
+	"LIST_ALL":    ListAll,
 	"listInt":     ListInt,
 	"INT":         Int,
 	"FLOOR":       Floor,
 	"FLOAT":       Float,
+	"rnd":         Random,
 }
 
 func (o Operator) IsUnary() bool {
 	return o == Negate || o == Not || o == ListValue ||
 		o == ListMin || o == ListMax || o == ListRandom || o == ListCount ||
-		o == Int || o == Floor || o == Float
+		o == Int || o == Floor || o == Float || o ==ListAll
 }
 
 const (
@@ -61,9 +63,11 @@ const (
 	ListMax
 	ListRandom
 	ListCount
+	ListAll
 	Int
 	Floor
 	Float
+	Random
 )
 
 func IsOperator(str string) (Operator, bool) {

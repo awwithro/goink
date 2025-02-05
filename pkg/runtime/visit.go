@@ -214,8 +214,8 @@ func (s *Story) VisitVarRef(v types.VarRef) {
 		intermediateValue = val
 	} else {
 		log.Debugf("temp %v\n", s.state.tmpVars)
-		log.Debugf("global %v\n", s.state.tmpVars)
-		log.Panic("ref to unset var ", string(v))
+		log.Debugf("global %v\n", s.state.globalVars)
+		s.Panicf("ref to unset var %s\nGlobal: %v", string(v), s.state.globalVars)
 	}
 
 	// if set, see if we need to dereference a variable pointer
@@ -264,7 +264,7 @@ func (s *Story) VisitExternalFunctionDivert(e types.ExternalFunctionDivert) {
 				case types.StringVal:
 					args = append(args, arg.String())
 				default:
-					log.Panicf("Unrecognized type for external func %T", arg)
+					s.Panicf("Unrecognized type for external func %T", arg)
 				}
 			}
 		}
@@ -281,7 +281,7 @@ func (s *Story) VisitExternalFunctionDivert(e types.ExternalFunctionDivert) {
 			case string:
 				s.evaluationStack.Push(types.StringVal(val))
 			default:
-				log.Panicf("unrecognized return value for external func %T", val)
+				s.Panicf("unrecognized return value for external func %T", val)
 			}
 		} else {
 			log.Debug("No return val from external func, pushing void")
@@ -294,7 +294,7 @@ func (s *Story) getVariablePointerValue(p types.VariablePointer) any {
 	// TODO: Use the ci of p to determine if global or local
 	val, ok := s.state.globalVars[p.Name]
 	if !ok {
-		log.Panic("nil pointer, no var ", p.Name)
+		s.Panicf("nil pointer, no var %s", p.Name)
 	}
 	return val
 }
@@ -338,13 +338,13 @@ func (s *Story) VisitListVal(l types.ListVal) {
 }
 
 func (s *Story) initializeList(init types.ListInit) (list types.ListVal) {
-	list = make(types.ListVal)
+	list = types.ListVal{}
 	for _, name := range init.Origins {
 		if def, ok := s.computedLists[name]; !ok {
-			log.Panic("origin referenced an undefined list ", name)
+			s.Panicf("origin referenced an undefined list %s", name)
 		} else {
-			for k, v := range def {
-				list[k] = v
+			for _, v := range def {
+				list = append(list, v)
 			}
 		}
 	}
@@ -352,7 +352,7 @@ func (s *Story) initializeList(init types.ListInit) (list types.ListVal) {
 	// name as well as the item val
 	for name := range init.List {
 		segs := strings.Split(name, ".")
-		list[segs[1]] = s.computedLists[segs[0]][segs[1]]
+		list = append(list, s.computedLists[segs[0]].Get(segs[1]))
 	}
 	return list
 }

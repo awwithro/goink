@@ -148,7 +148,7 @@ func panicInvalidStackType[T any](actual any, s *Story) {
 
 func (s *Story) Panic(str string) {
 	log.WithFields(log.Fields{
-		"Parent": s.currentAddress.C.ParentContainer.Name,
+		"Parent":    s.currentAddress.C.ParentContainer.Name,
 		"Container": s.currentAddress.C.Name,
 		"Index":     s.currentAddress.I,
 	}).Panic(str)
@@ -346,16 +346,13 @@ func (s *Story) RegisterExternalFunction(name string, f func([]any) any) {
 
 func (s *Story) generateListVars() {
 	s.computedLists = s.ink.ListDefs.GetListValItems()
-	// dupes := s.ink.ListDefs.GetDuplicatedKeys()
 	for listName, list := range s.computedLists {
-		for item, lvi := range list {
-			var varName string
-			// if _, duplicate := dupes[item]; duplicate {
-			varName = fmt.Sprintf("%s.%s", listName, item)
-			// } else {
-			// varName = item
-			// }
+		for _, lvi := range list {
+			// TODO: should have a GetVar func that looks through temp, global, list-items
+			dupeName := fmt.Sprintf("%s.%s", listName, lvi.Name)
+			varName := lvi.Name
 			s.state.globalVars[varName] = lvi
+			s.state.globalVars[dupeName] = lvi
 			log.Debugf("Set Var: %s", varName)
 		}
 	}

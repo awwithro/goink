@@ -1,10 +1,11 @@
 package types
 
 import (
-	"maps"
 	"math/rand"
 	"slices"
 	"strings"
+
+	log "github.com/sirupsen/logrus"
 )
 
 var _ Comparable[*ListValItem] = &ListValItem{}
@@ -28,9 +29,9 @@ type ListInit struct {
 	Origins []string
 }
 
-type ListVal map[string]*ListValItem
+type ListVal []*ListValItem
 
-// returns a map of list keys. If the key is duplicated, the value is true
+// returns a map of list value names. If the key is duplicated, the value is true
 func (l *ListDefs) GetDuplicatedKeys() map[string]bool {
 	result := make(map[string]bool)
 	for _, lst := range *l {
@@ -51,11 +52,11 @@ func (l *ListDefs) GetListValItems() map[string]ListVal {
 		newList := ListVal{}
 		for itemName, itemVal := range list {
 			lvi := &ListValItem{
-				Name:  itemName,
-				Value: int(itemVal),
+				Name:   itemName,
+				Value:  int(itemVal),
 				Parent: &newList,
 			}
-			newList[itemName] = lvi
+			newList = append(newList, lvi)
 		}
 		sorted := newList.AsList()
 		for x, item := range sorted {
@@ -69,12 +70,27 @@ func (l *ListDefs) GetListValItems() map[string]ListVal {
 }
 
 func (l ListVal) AsList() []*ListValItem {
-	return slices.SortedFunc(maps.Values(l), func(a, b *ListValItem) int {
+	slices.SortFunc(l, func(a, b *ListValItem) int {
 		if a.Value < b.Value {
+			return -1
+		} else if a.Value > b.Value {
+			return 1
+		}
+		// equal values
+		if a.Name < b.Name{
 			return -1
 		}
 		return 1
 	})
+	return l
+}
+func (l ListVal) Get(name string) *ListValItem {
+	for _, item := range l {
+		if item.Name == name {
+			return item
+		}
+	}
+	return nil
 }
 
 func (l ListVal) Min() (min *ListValItem) {
@@ -89,7 +105,7 @@ func (l ListVal) Min() (min *ListValItem) {
 }
 
 func (l ListVal) Max() (max *ListValItem) {
-	for _, v := range  l{
+	for _, v := range l {
 		if max == nil {
 			max = v
 		} else if v.Value > max.Value {
@@ -111,16 +127,30 @@ func (l ListVal) Random() *ListValItem {
 	return nil
 }
 
+func (l ListVal) All() (all ListVal) {
+	lists := map[*ListVal]bool{}
+	for _, item := range l {
+		lists[item.Parent] = true
+	}
+	log.Debugf("Lists: %v",lists)
+	for list := range lists {
+		for _, item := range list.AsList() {
+			all = append(all, item)
+		}
+	}
+	return all.AsList()
+}
+
 func (l ListVal) Count() int {
 	return len(l)
 }
 
 func (l ListVal) String() string {
 	keys := make([]string, 0, len(l))
-	for _,k := range l.AsList() {
+	for _, k := range l.AsList() {
 		keys = append(keys, k.Name)
 	}
-	return strings.Join(keys, ", ")
+	return strings.Join(keys, ",")
 }
 
 func (l *ListValItem) Equals(other *ListValItem) bool {

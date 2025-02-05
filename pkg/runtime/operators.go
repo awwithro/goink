@@ -2,6 +2,7 @@ package runtime
 
 import (
 	"math"
+	"math/rand"
 
 	"github.com/awwithro/goink/pkg/parser/types"
 	log "github.com/sirupsen/logrus"
@@ -38,6 +39,8 @@ func (s *Story) VisitOperator(op types.Operator) {
 				s.evaluationStack.Push(types.IntVal(v.Count()))
 			case types.ListRandom:
 				s.evaluationStack.Push(v.Random())
+			case types.ListAll:
+				s.evaluationStack.Push(v.All())
 			default:
 				s.Panicf("Unimplemented Operator: %d for %T", op, val)
 			}
@@ -96,6 +99,8 @@ func (s *Story) VisitOperator(op types.Operator) {
 				s.evaluationStack.Push(binaryBoolOperator(v1, v2, and))
 			case types.Or:
 				s.evaluationStack.Push(binaryBoolOperator(v1, v2, or))
+			case types.Random:
+				s.evaluationStack.Push(binaryNumericOperator(v1, v2, rnd))
 			default:
 				s.Panicf("Unimplemented Operator: %d", op)
 			}
@@ -142,8 +147,6 @@ func (s *Story) VisitOperator(op types.Operator) {
 				s.evaluationStack.Push(v1)
 			default:
 				s.Panicf("Unimplemented Operator: %d", op)
-				// case Add, Sub
-				// Need to use the add operator to increment the list by a number
 			}
 		// Odd case, a string and int are used by listInt to get the position from a list
 		// don't know why a VAR? operator isn't used. NEEDS TO GET THE ORIGINAL GLOBAL DEF
@@ -157,6 +160,18 @@ func (s *Story) VisitOperator(op types.Operator) {
 				lst := s.computedLists[v1.String()]
 				s.evaluationStack.Push(lst.AsList()[v2.AsInt()-1]) // Not Zero Indexed!
 
+			default:
+				s.Panicf("Unimplemented Operator: %d for %T and %T", op, val1, val2)
+			}
+		case types.ListVal:
+			v2, ok := val2.(*types.ListValItem)
+			if !ok {
+				panicInvalidStackType[types.ListValItem](val2, s)
+			}
+			switch op {
+			case types.Plus:
+				v1 = append(v1, v2)
+				s.evaluationStack.Push(v1)
 			default:
 				s.Panicf("Unimplemented Operator: %d for %T and %T", op, val1, val2)
 			}
@@ -250,4 +265,8 @@ func max(x, y float64) float64 {
 }
 func negate(x float64) float64 {
 	return x * -1
+}
+
+func rnd(min, max float64) float64 {
+	return float64(rand.Intn(int(max)+1-int(min)) + int(min))
 }

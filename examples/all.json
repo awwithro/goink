@@ -1,0 +1,109 @@
+{
+    "inkVersion": 21,
+    "root": [
+        [
+            "ev",
+            {
+                "VAR?": "test"
+            },
+            {
+                "VAR?": "f"
+            },
+            "+",
+            {
+                "VAR=": "test",
+                "re": true
+            },
+            "/ev",
+            "ev",
+            {
+                "VAR?": "test"
+            },
+            "out",
+            "/ev",
+            "\n",
+            "ev",
+            {
+                "VAR?": "test"
+            },
+            "LIST_ALL",
+            "/ev",
+            {
+                "VAR=": "all",
+                "re": true
+            },
+            "\n",
+            "ev",
+            {
+                "VAR?": "all"
+            },
+            "out",
+            "/ev",
+            "\n",
+            [
+                "done",
+                {
+                    "#f": 5,
+                    "#n": "g-0"
+                }
+            ],
+            null
+        ],
+        "done",
+        {
+            "global decl": [
+                "ev",
+                {
+                    "list": {
+                        "test.a": 1
+                    }
+                },
+                {
+                    "VAR=": "test"
+                },
+                {
+                    "list": {},
+                    "origins": [
+                        "two"
+                    ]
+                },
+                {
+                    "VAR=": "two"
+                },
+                {
+                    "list": {},
+                    "origins": [
+                        "all"
+                    ]
+                },
+                {
+                    "VAR=": "all"
+                },
+                "/ev",
+                "end",
+                null
+            ],
+            "#f": 1
+        }
+    ],
+    "listDefs": {
+        "test": {
+            "a": 1,
+            "b": 2,
+            "c": 3,
+            "d": 4,
+            "e": 5
+        },
+        "two": {
+            "e": 1,
+            "f": 2,
+            "g": 3,
+            "h": 4,
+            "i": 5,
+            "j": 6
+        },
+        "all": {
+            "z": 1
+        }
+    }
+}
