@@ -5,6 +5,8 @@ import (
 	"math/rand"
 
 	"github.com/awwithro/goink/pkg/parser/types"
+	mapset "github.com/deckarep/golang-set/v2"
+	"github.com/juliangruber/go-intersect/v2"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -26,6 +28,9 @@ func (s *Story) VisitOperator(op types.Operator) {
 				s.evaluationStack.Push(types.FloatVal(v.AsFloat()))
 			case types.Floor:
 				s.evaluationStack.Push(types.IntVal(int(math.Floor(v.AsFloat()))))
+			case types.SeedRandom:
+				// TODO: figure out seeds
+				s.evaluationStack.Push(types.VoidVal{})
 			default:
 				s.Panicf("Unimplemented Operator: %d for %T", op, val)
 			}
@@ -41,6 +46,12 @@ func (s *Story) VisitOperator(op types.Operator) {
 				s.evaluationStack.Push(v.Random())
 			case types.ListAll:
 				s.evaluationStack.Push(v.All())
+			case types.ListInvert:
+				// TODO: Can all ListVals be set objects?
+				set := mapset.NewSet(v...)
+				original := mapset.NewSet(*v[0].Parent...)
+				res := original.Difference(set)
+				s.evaluationStack.Push(types.ListVal(res.ToSlice()))
 			default:
 				s.Panicf("Unimplemented Operator: %d for %T", op, val)
 			}
@@ -56,8 +67,8 @@ func (s *Story) VisitOperator(op types.Operator) {
 		default:
 			s.Panicf("no unary operation implemented for %T", val)
 		}
-
-	} else {
+		// TODO: better way
+	} else if op != types.ListRange {
 		val2 := mustPopStack[any](s.evaluationStack)
 		val1 := mustPopStack[any](s.evaluationStack)
 		log.Debug("Operating on ", val1, val2)
@@ -164,22 +175,55 @@ func (s *Story) VisitOperator(op types.Operator) {
 				s.Panicf("Unimplemented Operator: %d for %T and %T", op, val1, val2)
 			}
 		case types.ListVal:
-			v2, ok := val2.(*types.ListValItem)
-			if !ok {
-				panicInvalidStackType[types.ListValItem](val2, s)
-			}
-			switch op {
-			case types.Plus:
-				v1 = append(v1, v2)
-				s.evaluationStack.Push(v1)
+			switch v2 := val2.(type) {
+			case types.ListVal:
+				switch op {
+				case types.ListIntersect:
+					// TODO: Use set objects?
+					res := intersect.HashGeneric(v1, v2)
+					s.evaluationStack.Push(types.ListVal(res))
+				case types.Contains:
+					set1 := mapset.NewSet(v1...)
+					s.evaluationStack.Push(types.BoolVal(set1.Contains(v2...)))
+				case types.NotContains:
+					set1 := mapset.NewSet(v1...)
+					s.evaluationStack.Push(types.BoolVal(!set1.Contains(v2...)))
+				default:
+					s.Panicf("Unimplemented Operator: %d for %T and %T", op, val1, val2)
+				}
+
+			case *types.ListValItem:
+				switch op {
+				case types.Plus:
+					v1 = append(v1, v2)
+					s.evaluationStack.Push(v1)
+				case types.Minus:
+					for x, v := range v1 {
+						if v == v2 {
+							v1 = append(v1[:x], v1[x+1:]...)
+						}
+					}
+					s.evaluationStack.Push(v1)
+				default:
+					s.Panicf("Unimplemented Operator: %d for %T and %T", op, val1, val2)
+				}
 			default:
-				s.Panicf("Unimplemented Operator: %d for %T and %T", op, val1, val2)
+				s.Panicf("no operation implemented for %T an %T", v1, v2)
 			}
 
 		default:
 			s.Panicf("Unimplemented Type: %T for Operation: %d", val1, op)
 		}
-
+		// Ternary/Range function
+	} else {
+		max := mustPopStack[types.IntVal](s.evaluationStack)
+		min := mustPopStack[types.IntVal](s.evaluationStack)
+		lst := mustPopStack[types.ListVal](s.evaluationStack)
+		log.Debugf("Range min: %d max: %d of list %d", min, max, len(lst))
+		if max.AsInt() > len(lst) {
+			max = types.IntVal(len(lst))
+		}
+		s.evaluationStack.Push(types.ListVal(lst[min.AsInt()-1 : max.AsInt()]))
 	}
 	s.currentAddress.Increment()
 }

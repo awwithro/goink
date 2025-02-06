@@ -35,3 +35,4 @@ references a list, fils it with the defined BedKnowledge listDef and assigns it 
 * Str is based on key, both foo.bar and baz.bar print "bar"
 * Var ref is two the ListVal itself, not the str or map val of the item
 * ListInt is odd, it references a list with a string value rather than a proper var ref.
+* L^ is a list intersection

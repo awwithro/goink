@@ -91,24 +91,6 @@ func (s *Story) startStrMode() {
 	s.mode = Str
 	s.stringMarker = s.outputBuffer.Size()
 }
-func (s *Story) popOutput() {
-	str := mustPopStack[fmt.Stringer](s.evaluationStack)
-	s.outputBuffer.Push(str.String())
-
-}
-
-func (s *Story) pushVisitCount() {
-	count := s.state.visitCounts[s.currentAddress.C]
-	log.Debug("Pushed visit count of ", count)
-	s.evaluationStack.Push(types.IntVal(count))
-}
-
-func (s *Story) duplicateTopItem() {
-	item, ok := s.evaluationStack.Peek()
-	if ok {
-		s.evaluationStack.Push(item)
-	}
-}
 
 func (s *Story) endStrMode() {
 	if s.mode != Str {
@@ -127,6 +109,51 @@ func (s *Story) endStrMode() {
 	}
 	s.evaluationStack.Push(types.StringVal(result.String()))
 	s.stringMarker = -1
+}
+
+func (s *Story) startTagMode() {
+	if s.mode != None {
+		panicInvalidModeTransition(s.mode, TagMode, s)
+	}
+	s.mode = TagMode
+	s.stringMarker = s.outputBuffer.Size()
+}
+
+func (s *Story) endTagMode() {
+	if s.mode != TagMode {
+		panicInvalidModeTransition(s.mode, TagMode, s)
+	}
+	s.mode = None
+	if s.outputBuffer.Size() == s.stringMarker {
+		log.Panic("No elements could be popped from the output buffer")
+	}
+	result := strings.Builder{}
+	items := s.outputBuffer.Size() - s.stringMarker
+	for items > 0 {
+		val, _ := s.outputBuffer.Pop()
+		result.WriteString(val)
+		items--
+	}
+	s.state.currentTags = append(s.state.currentTags, types.Tag(result.String()))
+	s.stringMarker = -1
+}
+
+func (s *Story) popOutput() {
+	str := mustPopStack[fmt.Stringer](s.evaluationStack)
+	s.outputBuffer.Push(str.String())
+}
+
+func (s *Story) pushVisitCount() {
+	count := s.state.visitCounts[s.currentAddress.C]
+	log.Debug("Pushed visit count of ", count)
+	s.evaluationStack.Push(types.IntVal(count))
+}
+
+func (s *Story) duplicateTopItem() {
+	item, ok := s.evaluationStack.Peek()
+	if ok {
+		s.evaluationStack.Push(item)
+	}
 }
 
 func panicInvalidModeTransition(current, attempted Mode, s *Story) {

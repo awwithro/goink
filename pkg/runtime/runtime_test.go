@@ -17,6 +17,7 @@ func TestFullInkStory(t *testing.T) {
 		choices         []int
 		choiceCounts    []int // expected choice counts at each point we're offered choices
 		expectedText    string
+		expectedTags    []types.Tag
 		externalFuncs   map[string]func([]any) any
 	}{
 		{
@@ -65,7 +66,7 @@ func TestFullInkStory(t *testing.T) {
 		{
 			desc:            "Complex lists",
 			inkJsonFilePath: "../../examples/list2.json",
-			expectedText:   `three,six
+			expectedText: `three,six
 true
 get the representation of a list object: one
 two
@@ -81,6 +82,27 @@ four
 			desc:            "List All Func",
 			inkJsonFilePath: "../../examples/all.json",
 			expectedText:    "a,f\n\na,e,b,f,c,g,d,h,e,i,j\n",
+		},
+		{
+			desc:            "Range Func",
+			inkJsonFilePath: "../../examples/range.json",
+			expectedText:    "b,c,d\n",
+		},
+		{
+			desc:            "List Invert Func",
+			inkJsonFilePath: "../../examples/invert.json",
+			expectedText:    "Pre: Smith,Jones\n\n\nPost: Carter,Braithwaite\n",
+		},
+		{
+			desc: "Sequence",
+			inkJsonFilePath: "../../examples/seq.json",
+			expectedText: "\"Three!\"\n\"Two!\"\n\"One!\"\nThere was the white noise racket of an explosion.\nBut it was just static.\n",
+		},
+		{
+			desc: "Tags",
+			inkJsonFilePath: "../../examples/tag.json",
+			expectedText: "Hello \n",
+			expectedTags: []types.Tag{types.Tag("world "), types.Tag("another")},
 		},
 	}
 	parsed := map[string]types.Ink{}
@@ -125,7 +147,9 @@ four
 					choiceIdx++
 				}
 			}
-			assert.Equal(tC.expectedText, state.GetText())
+			actualText, actualTags := state.GetTextAndTags()
+			assert.Equal(tC.expectedText, actualText)
+			assert.Equal(tC.expectedTags, actualTags)
 		})
 	}
 }

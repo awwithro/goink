@@ -229,13 +229,17 @@ func (c *Container) unmarshalMaps(obj map[string]any) {
 			for k, v := range val {
 				lst[k] = int(v.(float64))
 			}
-			var origin []string
-			if o, ok := obj["origin"]; ok {
-				origin = o.([]string)
+			var origins []string
+			if o, ok := obj["origins"]; ok {
+				rawOrigins := o.([]any)
+				for _,s := range rawOrigins{
+					str := s.(string)
+					origins = append(origins, str)
+				}
 			}
 			c.Contents = append(c.Contents, ListInit{
 				List:    lst,
-				Origins: origin,
+				Origins: origins,
 			})
 		// parsed as part of other key
 		case "var", "c", "exArgs", "ci", "flg", "re", "origins":

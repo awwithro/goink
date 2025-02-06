@@ -1,0 +1,55 @@
+{
+    "inkVersion": 21,
+    "root": [
+        [
+            "ev",
+            {
+                "VAR?": "test"
+            },
+            "LIST_ALL",
+            2,
+            4,
+            "range",
+            "out",
+            "/ev",
+            "\n",
+            [
+                "done",
+                {
+                    "#f": 5,
+                    "#n": "g-0"
+                }
+            ],
+            null
+        ],
+        "done",
+        {
+            "global decl": [
+                "ev",
+                {
+                    "list": {},
+                    "origins": [
+                        "test"
+                    ]
+                },
+                {
+                    "VAR=": "test"
+                },
+                "/ev",
+                "end",
+                null
+            ],
+            "#f": 1
+        }
+    ],
+    "listDefs": {
+        "test": {
+            "a": 1,
+            "b": 2,
+            "c": 3,
+            "d": 4,
+            "e": 5,
+            "f": 6
+        }
+    }
+}

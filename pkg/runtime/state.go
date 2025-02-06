@@ -2,12 +2,13 @@ package runtime
 
 import (
 	"github.com/awwithro/goink/pkg/parser/types"
-	"github.com/sirupsen/logrus"
+	log "github.com/sirupsen/logrus"
 )
 
 type StoryState struct {
 	globalVars     map[string]any
 	currentChoices []Choice
+	currentTags    []types.Tag
 	tmpVars        map[string]any
 	done           bool
 	Finished       bool
@@ -55,7 +56,7 @@ func (s *StoryState) GetVar(name string) any {
 	if v, ok := s.tmpVars[name]; ok {
 		return v
 	}
-	logrus.Panicf("no var named %s", name)
+	log.Panicf("no var named %s", name)
 	return nil
 }
 
@@ -74,11 +75,23 @@ func (c Choice) storyText() string {
 }
 
 func (s *StoryState) RecordContainer(a Address) {
+	log.Debugf("Recording Container stats: %s, %d", a.C.Name, a.I)
 	c := a.C
 	idx := a.I
 	if c.RecordVisits() {
 		if !c.CountStartOnly() || idx == 0 {
-			s.visitCounts[c] += 1
+			// A little odd, counts get recorded on entry but the visit operator
+			// treats the count as prior visits. Therefore, a !ok map means we've never visited
+			// a 0 means this is our first visit ...etc.
+			if _, ok := s.visitCounts[c]; ok {
+				s.visitCounts[c] += 1
+			} else {
+				s.visitCounts[c] = 0
+			}
+
+			log.Debugf("Recorded Visit: %d", s.visitCounts[c])
+		} else {
+			log.Debug("Not Recoded, was't at start")
 		}
 	}
 	if c.RecordTurns() {
@@ -97,8 +110,10 @@ func (s *StoryState) CanContinue() bool {
 	return true
 }
 
-func (s *StoryState) GetText() string {
+func (s *StoryState) GetTextAndTags() (string, []types.Tag) {
 	text := s.text
+	tags := s.currentTags
 	s.text = ""
-	return text
+	s.currentTags = []types.Tag{}
+	return text, tags
 }

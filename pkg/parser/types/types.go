@@ -58,8 +58,8 @@ func (b BoolVal) AsBool() bool {
 	return bool(b)
 }
 
-func (b BoolVal)String()string{
-	if b{
+func (b BoolVal) String() string {
+	if b {
 		return "true"
 	}
 	return "false"
@@ -323,3 +323,5 @@ func NewVariablePointer(name string) VariablePointer {
 		ContextIndex: -1,
 	}
 }
+
+type Tag string

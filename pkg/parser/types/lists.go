@@ -132,7 +132,7 @@ func (l ListVal) All() (all ListVal) {
 	for _, item := range l {
 		lists[item.Parent] = true
 	}
-	log.Debugf("Lists: %v",lists)
+	log.Debugf("Lists: %v",l)
 	for list := range lists {
 		for _, item := range list.AsList() {
 			all = append(all, item)

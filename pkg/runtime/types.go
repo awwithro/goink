@@ -16,6 +16,8 @@ func (m Mode) String() string {
 		return "Str"
 	case Eval:
 		return "Eval"
+	case TagMode:
+		return "Tag"
 	default:
 		return strconv.Itoa(int(m))
 	}
@@ -26,6 +28,7 @@ const (
 	None Mode = iota
 	Str
 	Eval
+	TagMode
 )
 
 var _ types.Visitor = &Story{}

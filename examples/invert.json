@@ -1,0 +1,81 @@
+{
+    "inkVersion": 21,
+    "root": [
+        [
+            "^Pre: ",
+            "ev",
+            {
+                "VAR?": "GuardsOnDuty"
+            },
+            "out",
+            "/ev",
+            "\n",
+            "ev",
+            {
+                "f()": "changingOfTheGuard"
+            },
+            "pop",
+            "/ev",
+            "\n",
+            "^Post: ",
+            "ev",
+            {
+                "VAR?": "GuardsOnDuty"
+            },
+            "out",
+            "/ev",
+            "\n",
+            [
+                "done",
+                {
+                    "#f": 5,
+                    "#n": "g-0"
+                }
+            ],
+            null
+        ],
+        "done",
+        {
+            "changingOfTheGuard": [
+                "ev",
+                {
+                    "VAR?": "GuardsOnDuty"
+                },
+                "LIST_INVERT",
+                "/ev",
+                {
+                    "VAR=": "GuardsOnDuty",
+                    "re": true
+                },
+                "\n",
+                {
+                    "#f": 1
+                }
+            ],
+            "global decl": [
+                "ev",
+                {
+                    "list": {
+                        "GuardsOnDuty.Smith": 1,
+                        "GuardsOnDuty.Jones": 2
+                    }
+                },
+                {
+                    "VAR=": "GuardsOnDuty"
+                },
+                "/ev",
+                "end",
+                null
+            ],
+            "#f": 1
+        }
+    ],
+    "listDefs": {
+        "GuardsOnDuty": {
+            "Smith": 1,
+            "Jones": 2,
+            "Carter": 3,
+            "Braithwaite": 4
+        }
+    }
+}

@@ -45,7 +45,8 @@ func runStory(s runtime.Story) {
 		if err != nil {
 			log.Error(err)
 		}
-		fmt.Print(state.GetText())
+		txt, _ := state.GetTextAndTags()
+		fmt.Print(txt)
 		if len(state.GetChoices()) > 0 {
 			for x, choice := range state.GetChoices() {
 				fmt.Printf("%d: %s\n", x, choice.ChoiceText())

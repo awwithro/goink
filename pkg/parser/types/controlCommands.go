@@ -23,6 +23,8 @@ var controlCommandMap = map[string]ControlCommand{
 	"end":       End,
 	"void":      Void,
 	"<>":        Glue,
+	"#":         StartTag,
+	"/#":        EndTag,
 }
 
 const (
@@ -46,6 +48,8 @@ const (
 	End
 	Void
 	Glue
+	StartTag
+	EndTag
 )
 
 func IsControlCommand(str string) (ControlCommand, bool) {

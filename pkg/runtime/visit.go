@@ -47,6 +47,12 @@ func (s *Story) VisitControlCommand(cmd types.ControlCommand) {
 		s.evaluationStack.Push(types.VoidVal{})
 	case types.ReturnTunnel:
 		s.returnTunnel()
+	case types.StartTag:
+		s.startTagMode()
+	case types.EndTag:
+		s.endTagMode()
+	case types.Sequence:
+		// TODO: pop an int, pick a random int from 1 -> int, push it back
 	default:
 		log.Panic("Unimplemented Command! ", cmd)
 	}
@@ -144,7 +150,7 @@ func (s *Story) VisitChoicePoint(p types.ChoicePoint) {
 	}
 	choice := Choice{Destination: a}
 	if p.OnceOnly() {
-		if s.state.visitCounts[a.C] > 0 {
+		if _, ok := s.state.visitCounts[a.C]; ok {
 			return
 		}
 	}
@@ -339,11 +345,13 @@ func (s *Story) VisitListVal(l types.ListVal) {
 
 func (s *Story) initializeList(init types.ListInit) (list types.ListVal) {
 	list = types.ListVal{}
+	log.Debug("init list: ", init)
 	for _, name := range init.Origins {
 		if def, ok := s.computedLists[name]; !ok {
 			s.Panicf("origin referenced an undefined list %s", name)
 		} else {
 			for _, v := range def {
+				log.Debugf("asspending %v to list", v)
 				list = append(list, v)
 			}
 		}
