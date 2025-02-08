@@ -5,8 +5,6 @@ import (
 	"math/rand"
 
 	"github.com/awwithro/goink/pkg/parser/types"
-	mapset "github.com/deckarep/golang-set/v2"
-	"github.com/juliangruber/go-intersect/v2"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -37,6 +35,8 @@ func (s *Story) VisitOperator(op types.Operator) {
 			}
 		case types.ListVal:
 			switch op {
+			case types.Not:
+				s.evaluationStack.Push(types.BoolVal(v.Count() == 0))
 			case types.ListMin:
 				s.evaluationStack.Push(v.Min())
 			case types.ListMax:
@@ -48,19 +48,17 @@ func (s *Story) VisitOperator(op types.Operator) {
 			case types.ListAll:
 				s.evaluationStack.Push(v.All())
 			case types.ListValue:
-				if len(v) > 1 {
+				if v.Count() > 1 {
 					s.Panic("List value called on list with multiple entries")
 				}
-				val := types.IntVal(v[0].Value)
+				val := types.IntVal(v.ToSlice()[0].Value)
 				s.evaluationStack.Push(val)
 				log.Debug("Pushed val ", val)
 				//log.Panic()
 			case types.ListInvert:
-				// TODO: Can all ListVals be set objects?
-				set := mapset.NewSet(v...)
-				original := mapset.NewSet(*v[0].Parent...)
-				res := original.Difference(set)
-				s.evaluationStack.Push(types.ListVal(res.ToSlice()))
+				original := v.ToSortedSlice()[0].Parent
+				original.Set = original.Difference(v.Set)
+				s.evaluationStack.Push(original)
 			default:
 				s.Panicf("Unimplemented Operator: %d for %T", op, val)
 			}
@@ -147,8 +145,8 @@ func (s *Story) VisitOperator(op types.Operator) {
 				s.evaluationStack.Push(binaryComparableOperator(v1, v2, gte))
 			case types.Minus:
 				v2 := val2.(*types.ListValItem)
-				if v1.Equals(v2){
-					s.evaluationStack.Push(types.ListVal{})
+				if v1.Equals(v2) {
+					s.evaluationStack.Push(types.NewListVal())
 				}
 			case types.Plus:
 				v2 := val2.(types.IntVal)
@@ -184,25 +182,37 @@ func (s *Story) VisitOperator(op types.Operator) {
 			case types.ListVal:
 				switch op {
 				case types.ListIntersect:
-					// TODO: Use set objects?
-					res := intersect.HashGeneric(v1, v2)
-					s.evaluationStack.Push(types.ListVal(res))
+					res := v1.Intersect(v2.Set)
+					s.evaluationStack.Push(types.ListVal{Set: res})
 				case types.Contains:
-					set1 := mapset.NewSet(v1...)
-					s.evaluationStack.Push(types.BoolVal(set1.Contains(v2...)))
+					s.evaluationStack.Push(types.BoolVal(v1.IsSuperset(v2.Set)))
 				case types.NotContains:
-					set1 := mapset.NewSet(v1...)
-					s.evaluationStack.Push(types.BoolVal(!set1.Contains(v2...)))
+					s.evaluationStack.Push(types.BoolVal(!v1.IsSuperset(v2.Set)))
 				case types.Plus:
-					first := mapset.NewSet(v1...)
-					second := mapset.NewSet(v2...)
-					res := first.Union(second)
-					s.evaluationStack.Push(types.ListVal(res.ToSlice()))
+					res := v1.Union(v2.Set)
+					s.evaluationStack.Push(types.ListVal{Set: res})
 				case types.Minus:
-					first := mapset.NewSet(v1...)
-					second := mapset.NewSet(v2...)
-					res := first.Difference(second)
-					s.evaluationStack.Push(types.ListVal(res.ToSlice()))
+					res := v1.Difference(v2.Set)
+					s.evaluationStack.Push(types.ListVal{Set: res})
+				case types.Equal:
+					s.evaluationStack.Push(types.BoolVal(v1.Set.Equal(v2.Set)))
+				default:
+					s.Panicf("Unimplemented Operator: %d for %T and %T", op, val1, val2)
+				}
+			case types.IntVal:
+				switch op {
+				case types.Plus:
+					if v1.Count() != 1 {
+						s.Panic("Can only increment single value sets")
+					}
+					val := v1.ToSlice()[0]
+					v2 := val2.(types.IntVal)
+					for range v2.AsInt() {
+						val = val.Next
+					}
+					v1.Clear()
+					v1.Add(val)
+					s.evaluationStack.Push(v1)
 				default:
 					s.Panicf("Unimplemented Operator: %d for %T and %T", op, val1, val2)
 				}
@@ -210,33 +220,15 @@ func (s *Story) VisitOperator(op types.Operator) {
 			case *types.ListValItem:
 				switch op {
 				case types.Plus:
-					v1 = append(v1, v2)
+					v1.Add(v2)
 					s.evaluationStack.Push(v1)
 				case types.Minus:
-					for x, v := range v1 {
-						if v == v2 {
-							v1 = append(v1[:x], v1[x+1:]...)
-						}
-					}
+					v1.Remove(v2)
 					s.evaluationStack.Push(v1)
 				case types.Contains:
-					var contains bool
-					for _, v := range v1 {
-						if v == v2 {
-							contains = true
-							break
-						}
-					}
-					s.evaluationStack.Push(types.BoolVal(contains))
+					s.evaluationStack.Push(types.BoolVal(v1.Contains(v2)))
 				case types.NotContains:
-					var contains bool
-					for _, v := range v1 {
-						if v == v2 {
-							contains = true
-							break
-						}
-					}
-					s.evaluationStack.Push(types.BoolVal(!contains))
+					s.evaluationStack.Push(types.BoolVal(!v1.Contains(v2)))
 				default:
 					s.Panicf("Unimplemented Operator: %d for %T and %T", op, val1, val2)
 				}
@@ -267,11 +259,12 @@ func (s *Story) VisitOperator(op types.Operator) {
 			max := mustPopStack[types.IntVal](s.evaluationStack)
 			min := mustPopStack[types.IntVal](s.evaluationStack)
 			lst := mustPopStack[types.ListVal](s.evaluationStack)
-			log.Debugf("Range min: %d max: %d of list %d", min, max, len(lst))
-			if max.AsInt() > len(lst) {
-				max = types.IntVal(len(lst))
+			log.Debugf("Range min: %d max: %d of list %d", min, max, lst.Count())
+			if max.AsInt() > lst.Count() {
+				max = types.IntVal(lst.Count())
 			}
-			s.evaluationStack.Push(types.ListVal(lst[min.AsInt()-1 : max.AsInt()]))
+			rng := lst.ToSortedSlice()[min.AsInt()-1 : max.AsInt()]
+			s.evaluationStack.Push(types.NewListVal(rng...))
 		default:
 			s.Panicf("Missing ternary operation %T", op)
 		}

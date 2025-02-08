@@ -5,6 +5,7 @@ import (
 	"slices"
 	"strings"
 
+	mapset "github.com/deckarep/golang-set/v2"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -29,7 +30,15 @@ type ListInit struct {
 	Origins []string
 }
 
-type ListVal []*ListValItem
+type ListVal struct {
+	mapset.Set[*ListValItem]
+}
+
+func NewListVal(items ...*ListValItem) ListVal {
+	return ListVal{
+		Set: mapset.NewSet(items...),
+	}
+}
 
 // returns a map of list value names. If the key is duplicated, the value is true
 func (l *ListDefs) GetDuplicatedKeys() map[string]bool {
@@ -49,16 +58,16 @@ func (l *ListDefs) GetDuplicatedKeys() map[string]bool {
 func (l *ListDefs) GetListValItems() map[string]ListVal {
 	result := map[string]ListVal{}
 	for listName, list := range *l {
-		newList := ListVal{}
+		newList := NewListVal()
 		for itemName, itemVal := range list {
 			lvi := &ListValItem{
 				Name:   itemName,
 				Value:  int(itemVal),
 				Parent: &newList,
 			}
-			newList = append(newList, lvi)
+			newList.Add(lvi)
 		}
-		sorted := newList.AsList()
+		sorted := newList.ToSortedSlice()
 		for x, item := range sorted {
 			if x+1 < len(sorted) {
 				item.Next = sorted[x+1]
@@ -69,23 +78,27 @@ func (l *ListDefs) GetListValItems() map[string]ListVal {
 	return result
 }
 
-func (l ListVal) AsList() []*ListValItem {
-	slices.SortFunc(l, func(a, b *ListValItem) int {
+func (l ListVal) ToSortedSlice() []*ListValItem {
+	items := l.ToSlice()
+	slices.SortFunc(items, func(a, b *ListValItem) int {
 		if a.Value < b.Value {
 			return -1
-		} else if a.Value > b.Value {
+		}
+		if a.Value > b.Value {
 			return 1
 		}
-		// equal values
-		if a.Name < b.Name {
-			return -1
+		if a.Value == b.Value {
+			if a.Name < b.Name {
+				return -1
+			}
 		}
 		return 1
 	})
-	return l
+	return items
 }
+
 func (l ListVal) Get(name string) *ListValItem {
-	for _, item := range l {
+	for _, item := range l.ToSlice() {
 		if item.Name == name {
 			return item
 		}
@@ -94,83 +107,77 @@ func (l ListVal) Get(name string) *ListValItem {
 }
 
 func (l ListVal) Min() ListVal {
-	if len(l) == 0 {
-		return ListVal{}
+	if l.Count() == 0 {
+		return NewListVal()
 	}
 	var min *ListValItem
-	for _, v := range l {
+	for _, v := range l.ToSlice() {
 		if min == nil {
 			min = v
 		} else if v.Value < min.Value {
 			min = v
 		}
 	}
-	return ListVal{min}
+	return NewListVal(min)
 }
 
 func (l ListVal) Max() ListVal {
-	if len(l) == 0{
-		return ListVal{}
+	if l.Count() == 0 {
+		return NewListVal()
 	}
 	var max *ListValItem
-	for _, v := range l {
+	for _, v := range l.ToSlice() {
 		if max == nil {
 			max = v
 		} else if v.Value > max.Value {
 			max = v
 		}
 	}
-	return ListVal{max}
+	return NewListVal(max)
 }
 
 func (l ListVal) Random() ListVal {
 	log.Debugf("picking from %v", l.All())
-	if len(l) == 0 {
+	if l.Count() == 0 {
 		log.Debug("Empty List")
 	} else {
-		i := rand.Intn(len(l))
+		i := rand.Intn(l.Count())
 		x := 0
-		for _, val := range l {
+		for _, val := range l.ToSlice() {
 			if x == i {
-				return ListVal{val}
+				return NewListVal(val)
 			}
 			x++
 		}
 	}
-	return ListVal{}
+	return NewListVal()
 }
 
 func (l ListVal) AsBool() bool {
-	return len(l) > 0
+	return l.Count() > 0
 }
 
-func (l ListVal) All() (all ListVal) {
-	lists := map[*ListVal]bool{}
-	for _, item := range l {
-		lists[item.Parent] = true
+func (l ListVal) All() ListVal {
+	all := NewListVal()
+	for _, item := range l.ToSlice() {
+		all.Set = all.Union(item.Parent.Set)
 	}
-	log.Debugf("Lists: %v", l)
-	for list := range lists {
-		for _, item := range list.AsList() {
-			all = append(all, item)
-		}
-	}
-	return all.AsList()
+	return all
 }
 
 func (l ListVal) Count() int {
-	return len(l)
+	return len(l.ToSlice())
 }
 
 func (l ListVal) String() string {
-	keys := make([]string, 0, len(l))
-	for _, k := range l.AsList() {
+	keys := make([]string, 0, l.Count())
+	for _, k := range l.ToSortedSlice() {
 		keys = append(keys, k.Name)
 	}
 	return strings.Join(keys, ",")
 }
 func (l ListVal) GetValue(val int) (item *ListValItem) {
-	for _, i := range l {
+	for _, i := range l.ToSortedSlice() {
 		if val == i.Value {
 			item = i
 			break

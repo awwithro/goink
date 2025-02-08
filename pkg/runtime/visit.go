@@ -356,16 +356,16 @@ func (s *Story) VisitListVal(l types.ListVal) {
 	s.currentAddress.Increment()
 }
 
-func (s *Story) initializeList(init types.ListInit) (list types.ListVal) {
-	list = types.ListVal{}
+func (s *Story) initializeList(init types.ListInit)  types.ListVal {
+	list := types.NewListVal()
 	log.Debug("init list: ", init)
 	for _, name := range init.Origins {
 		if def, ok := s.computedLists[name]; !ok {
 			s.Panicf("origin referenced an undefined list %s", name)
 		} else {
-			for _, v := range def {
-				log.Debugf("asspending %v to list", v)
-				list = append(list, v)
+			for _, v := range def.ToSortedSlice() {
+				log.Debugf("appending %v to list", v)
+				list.Add(v)
 			}
 		}
 	}
@@ -373,7 +373,7 @@ func (s *Story) initializeList(init types.ListInit) (list types.ListVal) {
 	// name as well as the item val
 	for name := range init.List {
 		segs := strings.Split(name, ".")
-		list = append(list, s.computedLists[segs[0]].Get(segs[1]))
+		list.Add(s.computedLists[segs[0]].Get(segs[1]))
 	}
 	return list
 }

@@ -373,11 +373,11 @@ func (s *Story) RegisterExternalFunction(name string, f func([]any) any) {
 func (s *Story) generateListVars() {
 	s.computedLists = s.ink.ListDefs.GetListValItems()
 	for listName, list := range s.computedLists {
-		for _, lvi := range list {
+		for _, lvi := range list.ToSortedSlice() {
 			// TODO: should have a GetVar func that looks through temp, global, list-items
 			dupeName := fmt.Sprintf("%s.%s", listName, lvi.Name)
 			varName := lvi.Name
-			lst := types.ListVal{lvi}
+			lst := types.NewListVal(lvi)
 			s.state.globalVars[varName] = lst
 			s.state.globalVars[dupeName] = lst
 			log.Debugf("Set Var: %s", varName)
