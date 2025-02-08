@@ -77,7 +77,7 @@ func (l ListVal) AsList() []*ListValItem {
 			return 1
 		}
 		// equal values
-		if a.Name < b.Name{
+		if a.Name < b.Name {
 			return -1
 		}
 		return 1
@@ -93,7 +93,11 @@ func (l ListVal) Get(name string) *ListValItem {
 	return nil
 }
 
-func (l ListVal) Min() (min *ListValItem) {
+func (l ListVal) Min() ListVal {
+	if len(l) == 0 {
+		return ListVal{}
+	}
+	var min *ListValItem
 	for _, v := range l {
 		if min == nil {
 			min = v
@@ -101,10 +105,14 @@ func (l ListVal) Min() (min *ListValItem) {
 			min = v
 		}
 	}
-	return min
+	return ListVal{min}
 }
 
-func (l ListVal) Max() (max *ListValItem) {
+func (l ListVal) Max() ListVal {
+	if len(l) == 0{
+		return ListVal{}
+	}
+	var max *ListValItem
 	for _, v := range l {
 		if max == nil {
 			max = v
@@ -112,19 +120,28 @@ func (l ListVal) Max() (max *ListValItem) {
 			max = v
 		}
 	}
-	return max
+	return ListVal{max}
 }
 
-func (l ListVal) Random() *ListValItem {
-	i := rand.Intn(len(l))
-	x := 0
-	for _, val := range l {
-		if x == i {
-			return val
+func (l ListVal) Random() ListVal {
+	log.Debugf("picking from %v", l.All())
+	if len(l) == 0 {
+		log.Debug("Empty List")
+	} else {
+		i := rand.Intn(len(l))
+		x := 0
+		for _, val := range l {
+			if x == i {
+				return ListVal{val}
+			}
+			x++
 		}
-		x++
 	}
-	return nil
+	return ListVal{}
+}
+
+func (l ListVal) AsBool() bool {
+	return len(l) > 0
 }
 
 func (l ListVal) All() (all ListVal) {
@@ -132,7 +149,7 @@ func (l ListVal) All() (all ListVal) {
 	for _, item := range l {
 		lists[item.Parent] = true
 	}
-	log.Debugf("Lists: %v",l)
+	log.Debugf("Lists: %v", l)
 	for list := range lists {
 		for _, item := range list.AsList() {
 			all = append(all, item)
@@ -152,7 +169,23 @@ func (l ListVal) String() string {
 	}
 	return strings.Join(keys, ",")
 }
+func (l ListVal) GetValue(val int) (item *ListValItem) {
+	for _, i := range l {
+		if val == i.Value {
+			item = i
+			break
+		}
+	}
+	if item == nil {
+		log.Panicf("No item with value %d", val)
+	}
+	return item
+}
 
+func (l *ListValItem) AsBool() bool {
+	// can this ever be false
+	return l != nil
+}
 func (l *ListValItem) Equals(other *ListValItem) bool {
 	return l.Name == other.Name && l.Value == other.Value && l.Parent == other.Parent
 }

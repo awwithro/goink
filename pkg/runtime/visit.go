@@ -1,6 +1,7 @@
 package runtime
 
 import (
+	"math/rand"
 	"slices"
 	"strings"
 
@@ -22,12 +23,12 @@ func (s *Story) VisitControlCommand(cmd types.ControlCommand) {
 	switch cmd {
 	case types.StartEvalMode:
 		s.startEvalMode()
+	case types.EndEvalMode:
+		s.endEvalMode()
 	case types.StartStrMode:
 		s.startStrMode()
 	case types.EndStrMode:
 		s.endStrMode()
-	case types.EndEvalMode:
-		s.endEvalMode()
 	case types.PopOutput:
 		s.popOutput()
 	case types.Pop:
@@ -45,14 +46,21 @@ func (s *Story) VisitControlCommand(cmd types.ControlCommand) {
 		s.glue()
 	case types.Void:
 		s.evaluationStack.Push(types.VoidVal{})
+	case types.ReturnFunction:
+		fallthrough
 	case types.ReturnTunnel:
 		s.returnTunnel()
 	case types.StartTag:
 		s.startTagMode()
 	case types.EndTag:
 		s.endTagMode()
+	case types.Thread:
+		log.Warn("bypassing thread")
+		s.currentAddress.Increment()
 	case types.Sequence:
-		// TODO: pop an int, pick a random int from 1 -> int, push it back
+		s.generateSequence()
+	case types.PushTurnsSinceTarget:
+		s.pushTurnsSinceTarget()
 	default:
 		log.Panic("Unimplemented Command! ", cmd)
 	}
@@ -226,6 +234,7 @@ func (s *Story) VisitVarRef(v types.VarRef) {
 
 	// if set, see if we need to dereference a variable pointer
 	if p, ok := intermediateValue.(types.VariablePointer); ok {
+		log.Debug("Deref a pointer")
 		finalVal = s.getVariablePointerValue(p)
 	} else {
 		finalVal = intermediateValue
@@ -245,7 +254,6 @@ func (s *Story) VisitReadCount(r types.ReadCount) {
 func (s *Story) VisitVariablePointer(v types.VariablePointer) {
 	s.evaluationStack.Push(v)
 	s.currentAddress.Increment()
-
 }
 
 func (s *Story) VisitExternalFunctionDivert(e types.ExternalFunctionDivert) {
@@ -298,14 +306,19 @@ func (s *Story) VisitExternalFunctionDivert(e types.ExternalFunctionDivert) {
 
 func (s *Story) getVariablePointerValue(p types.VariablePointer) any {
 	// TODO: Use the ci of p to determine if global or local
-	val, ok := s.state.globalVars[p.Name]
-	if !ok {
-		s.Panicf("nil pointer, no var %s", p.Name)
+	if val, ok := s.state.globalVars[p.Name]; ok {
+		log.Debugf("Pointer to %T: %v", val, val)
+		return val
+	} else if val, ok = s.state.tmpVars[p.Name];ok{
+		log.Debugf("Pointer to %T: %v", val, val)
+		return val
 	}
-	return val
+	s.Panicf("nil pointer, no var %s", p.Name)
+	return nil
 }
 func (s *Story) setVariablePointerValue(p types.VariablePointer, val any) {
 	// TODO: Use the ci of p to determine if global or local
+	log.Debugf("Setting Pointer Var, %T: %v named %s", val, val, p.Name)
 	s.state.globalVars[p.Name] = val
 }
 func (s *Story) glue() {
@@ -363,4 +376,20 @@ func (s *Story) initializeList(init types.ListInit) (list types.ListVal) {
 		list = append(list, s.computedLists[segs[0]].Get(segs[1]))
 	}
 	return list
+}
+
+func (s *Story) generateSequence() {
+	seq := mustPopStack[types.IntVal](s.evaluationStack)
+	val := rand.Intn(seq.AsInt()-1) + 1
+	res := types.IntVal(val)
+	log.Debugf("Generated Sequence number: %d", res.AsInt())
+	s.evaluationStack.Push(res)
+}
+
+func (s *Story) pushTurnsSinceTarget() {
+	divert := mustPopStack[types.DivertTarget](s.evaluationStack)
+	target := s.ResolvePath(types.Path(divert))
+	turns := s.state.LastTurnVisited(target.C)
+	delta := s.state.TurnCount - turns
+	s.evaluationStack.Push(types.IntVal(delta))
 }

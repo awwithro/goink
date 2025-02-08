@@ -40,7 +40,6 @@ type Story struct {
 	mode            Mode
 	stringMarker    int //Used to track index of stack to concatenate into a string
 	state           *StoryState
-	// Where in the ink we're located
 	currentAddress Address
 	previousState  stacks.Stack[State]
 	extFuncs       map[string]func([]any) any
@@ -378,8 +377,9 @@ func (s *Story) generateListVars() {
 			// TODO: should have a GetVar func that looks through temp, global, list-items
 			dupeName := fmt.Sprintf("%s.%s", listName, lvi.Name)
 			varName := lvi.Name
-			s.state.globalVars[varName] = lvi
-			s.state.globalVars[dupeName] = lvi
+			lst := types.ListVal{lvi}
+			s.state.globalVars[varName] = lst
+			s.state.globalVars[dupeName] = lst
 			log.Debugf("Set Var: %s", varName)
 		}
 	}

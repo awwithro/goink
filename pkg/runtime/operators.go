@@ -30,6 +30,7 @@ func (s *Story) VisitOperator(op types.Operator) {
 				s.evaluationStack.Push(types.IntVal(int(math.Floor(v.AsFloat()))))
 			case types.SeedRandom:
 				// TODO: figure out seeds
+				log.Warnf("Should seed with %d", v.AsInt())
 				s.evaluationStack.Push(types.VoidVal{})
 			default:
 				s.Panicf("Unimplemented Operator: %d for %T", op, val)
@@ -46,6 +47,14 @@ func (s *Story) VisitOperator(op types.Operator) {
 				s.evaluationStack.Push(v.Random())
 			case types.ListAll:
 				s.evaluationStack.Push(v.All())
+			case types.ListValue:
+				if len(v) > 1 {
+					s.Panic("List value called on list with multiple entries")
+				}
+				val := types.IntVal(v[0].Value)
+				s.evaluationStack.Push(val)
+				log.Debug("Pushed val ", val)
+				//log.Panic()
 			case types.ListInvert:
 				// TODO: Can all ListVals be set objects?
 				set := mapset.NewSet(v...)
@@ -58,7 +67,8 @@ func (s *Story) VisitOperator(op types.Operator) {
 		case *types.ListValItem:
 			switch op {
 			case types.ListMin:
-				s.evaluationStack.Push(types.StringVal(v.Name))
+				// Item is always the smallest
+				s.evaluationStack.Push(v)
 			case types.ListValue:
 				s.evaluationStack.Push(types.IntVal(v.Value))
 			default:
@@ -113,23 +123,8 @@ func (s *Story) VisitOperator(op types.Operator) {
 			case types.Random:
 				s.evaluationStack.Push(binaryNumericOperator(v1, v2, rnd))
 			default:
-				s.Panicf("Unimplemented Operator: %d", op)
+				s.Panicf("Unimplemented Operator: %d for %T and %T", op, val1, val2)
 			}
-
-		case types.Truthy:
-			v2, ok := val2.(types.Truthy)
-			if !ok {
-				panicInvalidStackType[types.Truthy](val2, s)
-			}
-			switch op {
-			case types.And:
-				s.evaluationStack.Push(binaryBoolOperator(v1, v2, and))
-			case types.Or:
-				s.evaluationStack.Push(binaryBoolOperator(v1, v2, or))
-			default:
-				s.Panicf("Unimplemented Operator: %d", op)
-			}
-
 		case *types.ListValItem:
 			switch op {
 			case types.Equal:
@@ -150,14 +145,24 @@ func (s *Story) VisitOperator(op types.Operator) {
 			case types.GreaterThanEqual:
 				v2 := val2.(*types.ListValItem)
 				s.evaluationStack.Push(binaryComparableOperator(v1, v2, gte))
+			case types.Minus:
+				v2 := val2.(*types.ListValItem)
+				if v1.Equals(v2){
+					s.evaluationStack.Push(types.ListVal{})
+				}
 			case types.Plus:
 				v2 := val2.(types.IntVal)
 				for range v2.AsInt() {
 					v1 = v1.Next
 				}
 				s.evaluationStack.Push(v1)
+			// I suspect another operator is supposed to return a listVal rather than an item
+			case types.Contains:
+				v2 := val2.(*types.ListValItem)
+				s.evaluationStack.Push(types.BoolVal(v1.Equals(v2)))
+
 			default:
-				s.Panicf("Unimplemented Operator: %d", op)
+				s.Panicf("Unimplemented Operator: %d for %T and %T", op, val1, val2)
 			}
 		// Odd case, a string and int are used by listInt to get the position from a list
 		// don't know why a VAR? operator isn't used. NEEDS TO GET THE ORIGINAL GLOBAL DEF
@@ -169,7 +174,7 @@ func (s *Story) VisitOperator(op types.Operator) {
 			switch op {
 			case types.ListInt:
 				lst := s.computedLists[v1.String()]
-				s.evaluationStack.Push(lst.AsList()[v2.AsInt()-1]) // Not Zero Indexed!
+				s.evaluationStack.Push(lst.GetValue(v2.AsInt())) // Not Zero Indexed!
 
 			default:
 				s.Panicf("Unimplemented Operator: %d for %T and %T", op, val1, val2)
@@ -188,6 +193,16 @@ func (s *Story) VisitOperator(op types.Operator) {
 				case types.NotContains:
 					set1 := mapset.NewSet(v1...)
 					s.evaluationStack.Push(types.BoolVal(!set1.Contains(v2...)))
+				case types.Plus:
+					first := mapset.NewSet(v1...)
+					second := mapset.NewSet(v2...)
+					res := first.Union(second)
+					s.evaluationStack.Push(types.ListVal(res.ToSlice()))
+				case types.Minus:
+					first := mapset.NewSet(v1...)
+					second := mapset.NewSet(v2...)
+					res := first.Difference(second)
+					s.evaluationStack.Push(types.ListVal(res.ToSlice()))
 				default:
 					s.Panicf("Unimplemented Operator: %d for %T and %T", op, val1, val2)
 				}
@@ -204,32 +219,69 @@ func (s *Story) VisitOperator(op types.Operator) {
 						}
 					}
 					s.evaluationStack.Push(v1)
+				case types.Contains:
+					var contains bool
+					for _, v := range v1 {
+						if v == v2 {
+							contains = true
+							break
+						}
+					}
+					s.evaluationStack.Push(types.BoolVal(contains))
+				case types.NotContains:
+					var contains bool
+					for _, v := range v1 {
+						if v == v2 {
+							contains = true
+							break
+						}
+					}
+					s.evaluationStack.Push(types.BoolVal(!contains))
 				default:
 					s.Panicf("Unimplemented Operator: %d for %T and %T", op, val1, val2)
 				}
 			default:
 				s.Panicf("no operation implemented for %T an %T", v1, v2)
 			}
-
+		case types.Truthy:
+			v2, ok := val2.(types.Truthy)
+			if !ok {
+				panicInvalidStackType[types.Truthy](val2, s)
+			}
+			switch op {
+			case types.And:
+				s.evaluationStack.Push(binaryBoolOperator(v1, v2, and))
+			case types.Or:
+				s.evaluationStack.Push(binaryBoolOperator(v1, v2, or))
+			default:
+				s.Panicf("Unimplemented Operator: %d for %T and %T", op, val1, val2)
+			}
 		default:
 			s.Panicf("Unimplemented Type: %T for Operation: %d", val1, op)
 		}
 		// Ternary/Range function
 	} else {
-		max := mustPopStack[types.IntVal](s.evaluationStack)
-		min := mustPopStack[types.IntVal](s.evaluationStack)
-		lst := mustPopStack[types.ListVal](s.evaluationStack)
-		log.Debugf("Range min: %d max: %d of list %d", min, max, len(lst))
-		if max.AsInt() > len(lst) {
-			max = types.IntVal(len(lst))
+		switch op {
+		case types.ListRange:
+			log.Debug("Running ListRange")
+			max := mustPopStack[types.IntVal](s.evaluationStack)
+			min := mustPopStack[types.IntVal](s.evaluationStack)
+			lst := mustPopStack[types.ListVal](s.evaluationStack)
+			log.Debugf("Range min: %d max: %d of list %d", min, max, len(lst))
+			if max.AsInt() > len(lst) {
+				max = types.IntVal(len(lst))
+			}
+			s.evaluationStack.Push(types.ListVal(lst[min.AsInt()-1 : max.AsInt()]))
+		default:
+			s.Panicf("Missing ternary operation %T", op)
 		}
-		s.evaluationStack.Push(types.ListVal(lst[min.AsInt()-1 : max.AsInt()]))
 	}
 	s.currentAddress.Increment()
 }
 
 func binaryNumericOperator(x, y types.NumericVal, f func(x, y float64) float64) types.NumericVal {
 	res := f(x.AsFloat(), y.AsFloat())
+	log.Debugf("Result is: %f", res)
 	if x.IsFloat() || y.IsFloat() {
 		return types.FloatVal(res)
 	}

@@ -123,6 +123,13 @@ func TestResolvePath(t *testing.T) {
 			expectedC:        baz,
 			expectedIdx:      0,
 		},
+		{
+			desc:             "Ref to self",
+			path:             ".^",
+			currentContainer: bar,
+			expectedC:        bar,
+			expectedIdx:      0,
+		},
 	}
 	for _, tC := range testCases {
 		assert := assert.New(t)

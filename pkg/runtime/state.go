@@ -49,6 +49,7 @@ func (s *StoryState) GetChoices() []Choice {
 }
 
 func (s *StoryState) SetVar(name string, val any) {
+	log.Debugf("setting %s to %v", name, val)
 	s.tmpVars[name] = val
 }
 
@@ -75,7 +76,6 @@ func (c Choice) storyText() string {
 }
 
 func (s *StoryState) RecordContainer(a Address) {
-	log.Debugf("Recording Container stats: %s, %d", a.C.Name, a.I)
 	c := a.C
 	idx := a.I
 	if c.RecordVisits() {
@@ -88,10 +88,6 @@ func (s *StoryState) RecordContainer(a Address) {
 			} else {
 				s.visitCounts[c] = 0
 			}
-
-			log.Debugf("Recorded Visit: %d", s.visitCounts[c])
-		} else {
-			log.Debug("Not Recoded, was't at start")
 		}
 	}
 	if c.RecordTurns() {
@@ -116,4 +112,8 @@ func (s *StoryState) GetTextAndTags() (string, []types.Tag) {
 	s.text = ""
 	s.currentTags = []types.Tag{}
 	return text, tags
+}
+
+func (s *StoryState)LastTurnVisited(c *types.Container) int{
+	return s.lastTurn[c]
 }

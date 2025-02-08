@@ -66,8 +66,13 @@ func ResolvePath(p Path, current *Container) (*Container, int) {
 		return cnt, idx
 		// starts with '^' ie a local ref
 	} else {
+		// self ref
+		if len(segs) == 1 {
+			return current, 0
+		}
 		// ignore the first ".^" since that implies the current container, not the parent, .^.^ is the parent of the current
 		// we also skip the last element and handle that as the return location
+
 		for _, seg := range segs[1 : len(segs)-1] {
 			if seg.IsAddr {
 				ct := current.Contents[seg.Addr]
