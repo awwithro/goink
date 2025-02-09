@@ -9,7 +9,8 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-var _ Comparable[*ListValItem] = &ListValItem{}
+var _ Comparable[ListValItem] = &ListValItem{}
+var _ Inty = &ListVal{}
 
 // Initial representation
 type ListDefs map[string]listDef
@@ -169,6 +170,23 @@ func (l ListVal) Count() int {
 	return len(l.ToSlice())
 }
 
+func (l ListVal) AsInt() int {
+	if l.Count() > 1 {
+		log.Panic("can't turn a multi-value list to an int")
+	}
+	return l.ToSlice()[0].Value
+}
+
+func (l ListVal) Range(min, max int) ListVal {
+	res := NewListVal()
+	for _, val := range l.ToSortedSlice() {
+		if val.Value >= min && val.Value <= max {
+			res.Add(val)
+		}
+	}
+	return res
+}
+
 func (l ListVal) String() string {
 	keys := make([]string, 0, l.Count())
 	for _, k := range l.ToSortedSlice() {
@@ -193,36 +211,32 @@ func (l *ListValItem) AsBool() bool {
 	// can this ever be false
 	return l != nil
 }
-func (l *ListValItem) Equals(other *ListValItem) bool {
+func (l ListValItem) Equals(other ListValItem) bool {
 	return l.Name == other.Name && l.Value == other.Value && l.Parent == other.Parent
 }
 
-func (l *ListValItem) NotEquals(other *ListValItem) bool {
+func (l ListValItem) NotEquals(other ListValItem) bool {
 	return !l.Equals(other)
 }
 
-func (l *ListValItem) GT(other *ListValItem) bool {
+func (l ListValItem) GT(other ListValItem) bool {
 	return l.Value > other.Value
 }
 
-func (l *ListValItem) GTE(other *ListValItem) bool {
+func (l ListValItem) GTE(other ListValItem) bool {
 	return l.Value >= other.Value
 }
 
-func (l *ListValItem) LT(other *ListValItem) bool {
+func (l ListValItem) LT(other ListValItem) bool {
 	return l.Value < other.Value
 }
 
-func (l *ListValItem) LTE(other *ListValItem) bool {
+func (l ListValItem) LTE(other ListValItem) bool {
 	return l.Value <= other.Value
 }
 
 func (l ListValItem) String() string {
 	return l.Name
-}
-
-func (l *ListValItem) Accept(v Visitor) {
-	v.VisitListValItem(l)
 }
 
 func (l ListInit) Accept(v Visitor) {

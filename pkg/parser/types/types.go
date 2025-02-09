@@ -19,6 +19,10 @@ type Truthy interface {
 	AsBool() bool
 }
 
+type Inty interface{
+	AsInt() int
+}
+
 type NumericVal interface {
 	IsFloat() bool
 	AsInt() int

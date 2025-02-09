@@ -62,16 +62,6 @@ func (s *Story) VisitOperator(op types.Operator) {
 			default:
 				s.Panicf("Unimplemented Operator: %d for %T", op, val)
 			}
-		case *types.ListValItem:
-			switch op {
-			case types.ListMin:
-				// Item is always the smallest
-				s.evaluationStack.Push(v)
-			case types.ListValue:
-				s.evaluationStack.Push(types.IntVal(v.Value))
-			default:
-				s.Panicf("Unimplemented Operator: %d for %T", op, val)
-			}
 		default:
 			s.Panicf("no unary operation implemented for %T", val)
 		}
@@ -123,45 +113,6 @@ func (s *Story) VisitOperator(op types.Operator) {
 			default:
 				s.Panicf("Unimplemented Operator: %d for %T and %T", op, val1, val2)
 			}
-		case *types.ListValItem:
-			switch op {
-			case types.Equal:
-				v2 := val2.(*types.ListValItem)
-				s.evaluationStack.Push(binaryComparableOperator(v1, v2, eq))
-			case types.NotEqual:
-				v2 := val2.(*types.ListValItem)
-				s.evaluationStack.Push(binaryComparableOperator(v1, v2, neq))
-			case types.LessThan:
-				v2 := val2.(*types.ListValItem)
-				s.evaluationStack.Push(binaryComparableOperator(v1, v2, lt))
-			case types.LessThanEqual:
-				v2 := val2.(*types.ListValItem)
-				s.evaluationStack.Push(binaryComparableOperator(v1, v2, lte))
-			case types.GreaterThan:
-				v2 := val2.(*types.ListValItem)
-				s.evaluationStack.Push(binaryComparableOperator(v1, v2, gt))
-			case types.GreaterThanEqual:
-				v2 := val2.(*types.ListValItem)
-				s.evaluationStack.Push(binaryComparableOperator(v1, v2, gte))
-			case types.Minus:
-				v2 := val2.(*types.ListValItem)
-				if v1.Equals(v2) {
-					s.evaluationStack.Push(types.NewListVal())
-				}
-			case types.Plus:
-				v2 := val2.(types.IntVal)
-				for range v2.AsInt() {
-					v1 = v1.Next
-				}
-				s.evaluationStack.Push(v1)
-			// I suspect another operator is supposed to return a listVal rather than an item
-			case types.Contains:
-				v2 := val2.(*types.ListValItem)
-				s.evaluationStack.Push(types.BoolVal(v1.Equals(v2)))
-
-			default:
-				s.Panicf("Unimplemented Operator: %d for %T and %T", op, val1, val2)
-			}
 		// Odd case, a string and int are used by listInt to get the position from a list
 		// don't know why a VAR? operator isn't used. NEEDS TO GET THE ORIGINAL GLOBAL DEF
 		case types.StringVal:
@@ -172,7 +123,8 @@ func (s *Story) VisitOperator(op types.Operator) {
 			switch op {
 			case types.ListInt:
 				lst := s.computedLists[v1.String()]
-				s.evaluationStack.Push(lst.GetValue(v2.AsInt())) // Not Zero Indexed!
+				res := lst.GetValue(v2.AsInt())
+				s.evaluationStack.Push(types.NewListVal(res)) // Not Zero Indexed!
 
 			default:
 				s.Panicf("Unimplemented Operator: %d for %T and %T", op, val1, val2)
@@ -216,22 +168,6 @@ func (s *Story) VisitOperator(op types.Operator) {
 				default:
 					s.Panicf("Unimplemented Operator: %d for %T and %T", op, val1, val2)
 				}
-
-			case *types.ListValItem:
-				switch op {
-				case types.Plus:
-					v1.Add(v2)
-					s.evaluationStack.Push(v1)
-				case types.Minus:
-					v1.Remove(v2)
-					s.evaluationStack.Push(v1)
-				case types.Contains:
-					s.evaluationStack.Push(types.BoolVal(v1.Contains(v2)))
-				case types.NotContains:
-					s.evaluationStack.Push(types.BoolVal(!v1.Contains(v2)))
-				default:
-					s.Panicf("Unimplemented Operator: %d for %T and %T", op, val1, val2)
-				}
 			default:
 				s.Panicf("no operation implemented for %T an %T", v1, v2)
 			}
@@ -256,15 +192,11 @@ func (s *Story) VisitOperator(op types.Operator) {
 		switch op {
 		case types.ListRange:
 			log.Debug("Running ListRange")
-			max := mustPopStack[types.IntVal](s.evaluationStack)
-			min := mustPopStack[types.IntVal](s.evaluationStack)
+			max := mustPopStack[types.Inty](s.evaluationStack)
+			min := mustPopStack[types.Inty](s.evaluationStack)
 			lst := mustPopStack[types.ListVal](s.evaluationStack)
 			log.Debugf("Range min: %d max: %d of list %d", min, max, lst.Count())
-			if max.AsInt() > lst.Count() {
-				max = types.IntVal(lst.Count())
-			}
-			rng := lst.ToSortedSlice()[min.AsInt()-1 : max.AsInt()]
-			s.evaluationStack.Push(types.NewListVal(rng...))
+			s.evaluationStack.Push(lst.Range(min.AsInt(), max.AsInt()))
 		default:
 			s.Panicf("Missing ternary operation %T", op)
 		}

@@ -38,6 +38,7 @@ func (s *Story) VisitControlCommand(cmd types.ControlCommand) {
 	case types.End:
 		s.endStory()
 	case types.NoOp:
+		log.Trace("nop")
 	case types.VisitCount:
 		s.pushVisitCount()
 	case types.Duplicate:
@@ -47,7 +48,7 @@ func (s *Story) VisitControlCommand(cmd types.ControlCommand) {
 	case types.Void:
 		s.evaluationStack.Push(types.VoidVal{})
 	case types.ReturnFunction:
-		fallthrough
+		s.returnFunc()
 	case types.ReturnTunnel:
 		s.returnTunnel()
 	case types.StartTag:
@@ -309,7 +310,7 @@ func (s *Story) getVariablePointerValue(p types.VariablePointer) any {
 	if val, ok := s.state.globalVars[p.Name]; ok {
 		log.Debugf("Pointer to %T: %v", val, val)
 		return val
-	} else if val, ok = s.state.tmpVars[p.Name];ok{
+	} else if val, ok = s.state.tmpVars[p.Name]; ok {
 		log.Debugf("Pointer to %T: %v", val, val)
 		return val
 	}
@@ -337,6 +338,15 @@ func (s *Story) returnTunnel() {
 	log.Debugf("Tunnel Returned to Name: %s Idx: %d", s.currentAddress.C.Name, s.currentAddress.I)
 }
 
+func (s *Story) returnFunc() {
+	oldState, _ := s.previousState.Pop()
+	s.currentAddress = oldState.address
+	// We're returning and then continuing past without evaluating
+	s.currentAddress.I--
+	s.mode = oldState.mode
+	log.Debugf("Tunnel Returned to Name: %s Idx: %d", s.currentAddress.C.Name, s.currentAddress.I)
+}
+
 func (s *Story) VisitListInit(l types.ListInit) {
 	log.Debugf("Visiting ListInit %v", l)
 	list := s.initializeList(l)
@@ -356,7 +366,7 @@ func (s *Story) VisitListVal(l types.ListVal) {
 	s.currentAddress.Increment()
 }
 
-func (s *Story) initializeList(init types.ListInit)  types.ListVal {
+func (s *Story) initializeList(init types.ListInit) types.ListVal {
 	list := types.NewListVal()
 	log.Debug("init list: ", init)
 	for _, name := range init.Origins {

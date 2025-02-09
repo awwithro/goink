@@ -23,7 +23,6 @@ type Visitor interface {
 	VisitTunnelDivert(TunnelDivert)
 	VisitListInit(ListInit)
 	VisitListVal(ListVal)
-	VisitListValItem(*ListValItem)
 }
 
 type Acceptor interface {
