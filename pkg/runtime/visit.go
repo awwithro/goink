@@ -1,6 +1,7 @@
 package runtime
 
 import (
+	"maps"
 	"math/rand"
 	"slices"
 	"strings"
@@ -74,6 +75,7 @@ func (s *Story) VisitTmpVar(v types.TempVar) {
 	// If this is a reassignment to a variablePointer, dereference and set the target
 	if v.ReAssign {
 		val := s.state.GetVar(v.Name)
+		log.Debugf("reassignment of var: %T %v",val, val)
 		if ref, ok := val.(types.VariablePointer); ok {
 			s.setVariablePointerValue(ref, p)
 			return
@@ -82,8 +84,9 @@ func (s *Story) VisitTmpVar(v types.TempVar) {
 	switch val := p.(type) {
 	case types.DivertTarget:
 		s.state.SetVar(v.Name, types.Path(val))
-	case types.VariablePointer:
-		s.state.SetVar(v.Name, val)
+	//case types.VariablePointer:
+	//	final := s.getVariablePointerValue(val)
+	//	s.state.SetVar(v.Name, final)
 	default:
 		s.state.SetVar(v.Name, val)
 	}
@@ -122,7 +125,14 @@ func (s *Story) pushStackDivert(divert types.Divert, increment bool) {
 	if increment {
 		oldAddr.Increment()
 	}
-	s.previousState.Push(State{address: oldAddr, mode: s.mode})
+	oldVars := maps.Clone(s.state.tmpVars)
+	// reset vars for the new context
+	s.state.tmpVars = map[string]any{}
+	s.previousState.Push(State{
+		address: oldAddr,
+		mode:    s.mode,
+		tmpVars: &oldVars,
+	})
 	s.mode = None
 	s.doDivert(divert)
 }
@@ -307,15 +317,16 @@ func (s *Story) VisitExternalFunctionDivert(e types.ExternalFunctionDivert) {
 
 func (s *Story) getVariablePointerValue(p types.VariablePointer) any {
 	// TODO: Use the ci of p to determine if global or local
+	var value any
 	if val, ok := s.state.globalVars[p.Name]; ok {
-		log.Debugf("Pointer to %T: %v", val, val)
-		return val
+		value = val
 	} else if val, ok = s.state.tmpVars[p.Name]; ok {
-		log.Debugf("Pointer to %T: %v", val, val)
-		return val
+		value = val
+	} else {
+		s.Panicf("nil pointer, no var %s", p.Name)
 	}
-	s.Panicf("nil pointer, no var %s", p.Name)
-	return nil
+	log.Debugf("Pointer to %T: %v", value, value)
+	return value
 }
 func (s *Story) setVariablePointerValue(p types.VariablePointer, val any) {
 	// TODO: Use the ci of p to determine if global or local
@@ -333,17 +344,15 @@ func (s *Story) glue() {
 
 func (s *Story) returnTunnel() {
 	oldState, _ := s.previousState.Pop()
-	s.currentAddress = oldState.address
-	s.mode = oldState.mode
+	s.restoreState(oldState)
 	log.Debugf("Tunnel Returned to Name: %s Idx: %d", s.currentAddress.C.Name, s.currentAddress.I)
 }
 
 func (s *Story) returnFunc() {
 	oldState, _ := s.previousState.Pop()
-	s.currentAddress = oldState.address
+	s.restoreState(oldState)
 	// We're returning and then continuing past without evaluating
 	s.currentAddress.I--
-	s.mode = oldState.mode
 	log.Debugf("Tunnel Returned to Name: %s Idx: %d", s.currentAddress.C.Name, s.currentAddress.I)
 }
 
@@ -402,4 +411,10 @@ func (s *Story) pushTurnsSinceTarget() {
 	turns := s.state.LastTurnVisited(target.C)
 	delta := s.state.TurnCount - turns
 	s.evaluationStack.Push(types.IntVal(delta))
+}
+
+func (s *Story) restoreState(oldState State) {
+	s.currentAddress = oldState.address
+	s.mode = oldState.mode
+	s.state.tmpVars = maps.Clone(*oldState.tmpVars)
 }

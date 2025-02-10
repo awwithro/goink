@@ -31,6 +31,7 @@ func (a *Address) Increment() {
 type State struct {
 	mode    Mode
 	address Address
+	tmpVars *map[string]any
 }
 
 type Story struct {
@@ -259,8 +260,7 @@ func (s *Story) reEnterStory() {
 				// unless there is a previous address on the stack (we're at the end of a function call)
 				if s.previousState.Size() > 0 {
 					prevState, _ := s.previousState.Pop()
-					s.currentAddress = prevState.address
-					s.mode = prevState.mode
+					s.restoreState(prevState)
 					// Assuming we're always returning from a function,
 					// this assumption likely doesn't hold up
 					s.evaluationStack.Push(types.VoidVal{})

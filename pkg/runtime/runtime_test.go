@@ -104,6 +104,11 @@ four
 			expectedText: "Hello \n",
 			expectedTags: []types.Tag{types.Tag("world "), types.Tag("another")},
 		},
+		{
+			desc: "Vars and ref Funcs",
+			inkJsonFilePath: "../../examples/varsnfuncs.json",
+			expectedText: "foo 1\nbar x 1\nbar var 2\n\nbarref var 2\n\n\ntest x 2\nfinal foo 2\n",
+		},
 	}
 	parsed := map[string]types.Ink{}
 	for _, tC := range testCases {

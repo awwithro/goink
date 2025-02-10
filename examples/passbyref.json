@@ -1,0 +1,80 @@
+{
+    "inkVersion": 21,
+    "root": [
+        [
+            "^foo ",
+            "ev",
+            {
+                "VAR?": "foo"
+            },
+            "out",
+            "/ev",
+            "\n",
+            "ev",
+            {
+                "^var": "foo",
+                "ci": -1
+            },
+            {
+                "f()": "barref"
+            },
+            "pop",
+            "/ev",
+            "\n",
+            "^final foo ",
+            "ev",
+            {
+                "VAR?": "foo"
+            },
+            "out",
+            "/ev",
+            "\n",
+            [
+                "done",
+                {
+                    "#f": 5,
+                    "#n": "g-0"
+                }
+            ],
+            null
+        ],
+        "done",
+        {
+            "barref": [
+                {
+                    "temp=": "var"
+                },
+                "ev",
+                {
+                    "VAR?": "var"
+                },
+                1,
+                "+",
+                {
+                    "temp=": "var",
+                    "re": true
+                },
+                "/ev",
+                "ev",
+                "void",
+                "/ev",
+                "~ret",
+                {
+                    "#f": 1
+                }
+            ],
+            "global decl": [
+                "ev",
+                1,
+                {
+                    "VAR=": "foo"
+                },
+                "/ev",
+                "end",
+                null
+            ],
+            "#f": 1
+        }
+    ],
+    "listDefs": {}
+}

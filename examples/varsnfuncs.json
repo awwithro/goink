@@ -1,0 +1,182 @@
+{
+    "inkVersion": 21,
+    "root": [
+        [
+            "^foo ",
+            "ev",
+            {
+                "VAR?": "foo"
+            },
+            "out",
+            "/ev",
+            "\n",
+            {
+                "->": "test"
+            },
+            [
+                "done",
+                {
+                    "#f": 5,
+                    "#n": "g-0"
+                }
+            ],
+            null
+        ],
+        "done",
+        {
+            "test": [
+                "ev",
+                2,
+                "/ev",
+                {
+                    "temp=": "x"
+                },
+                "ev",
+                {
+                    "f()": "bar"
+                },
+                "pop",
+                "/ev",
+                "\n",
+                "^test x ",
+                "ev",
+                {
+                    "VAR?": "x"
+                },
+                "out",
+                "/ev",
+                "\n",
+                "^final foo ",
+                "ev",
+                {
+                    "VAR?": "foo"
+                },
+                "out",
+                "/ev",
+                "\n",
+                "done",
+                {
+                    "#f": 1
+                }
+            ],
+            "bar": [
+                "ev",
+                1,
+                "/ev",
+                {
+                    "temp=": "x"
+                },
+                "^bar x ",
+                "ev",
+                {
+                    "VAR?": "x"
+                },
+                "out",
+                "/ev",
+                "\n",
+                "ev",
+                {
+                    "VAR?": "foo"
+                },
+                {
+                    "f()": "baz"
+                },
+                "pop",
+                "/ev",
+                "\n",
+                "ev",
+                {
+                    "^var": "foo",
+                    "ci": -1
+                },
+                {
+                    "f()": "barref"
+                },
+                "pop",
+                "/ev",
+                "\n",
+                "ev",
+                "void",
+                "/ev",
+                "~ret",
+                {
+                    "#f": 1
+                }
+            ],
+            "baz": [
+                {
+                    "temp=": "var"
+                },
+                "ev",
+                {
+                    "VAR?": "var"
+                },
+                1,
+                "+",
+                {
+                    "temp=": "var",
+                    "re": true
+                },
+                "/ev",
+                "^bar var ",
+                "ev",
+                {
+                    "VAR?": "var"
+                },
+                "out",
+                "/ev",
+                "\n",
+                "ev",
+                "void",
+                "/ev",
+                "~ret",
+                {
+                    "#f": 1
+                }
+            ],
+            "barref": [
+                {
+                    "temp=": "var"
+                },
+                "ev",
+                {
+                    "VAR?": "var"
+                },
+                1,
+                "+",
+                {
+                    "temp=": "var",
+                    "re": true
+                },
+                "/ev",
+                "^barref var ",
+                "ev",
+                {
+                    "VAR?": "var"
+                },
+                "out",
+                "/ev",
+                "\n",
+                "ev",
+                "void",
+                "/ev",
+                "~ret",
+                {
+                    "#f": 1
+                }
+            ],
+            "global decl": [
+                "ev",
+                1,
+                {
+                    "VAR=": "foo"
+                },
+                "/ev",
+                "end",
+                null
+            ],
+            "#f": 1
+        }
+    ],
+    "listDefs": {}
+}
