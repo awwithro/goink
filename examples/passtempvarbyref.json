@@ -1,0 +1,127 @@
+{
+    "inkVersion": 21,
+    "root": [
+        [
+            {
+                "->": "test"
+            },
+            [
+                "done",
+                {
+                    "#f": 5,
+                    "#n": "g-0"
+                }
+            ],
+            null
+        ],
+        "done",
+        {
+            "test": [
+                "ev",
+                1,
+                "/ev",
+                {
+                    "temp=": "x"
+                },
+                "^initial x ",
+                "ev",
+                {
+                    "VAR?": "x"
+                },
+                "out",
+                "/ev",
+                "\n",
+                "ev",
+                {
+                    "^var": "x",
+                    "ci": -1
+                },
+                {
+                    "f()": "baz"
+                },
+                "pop",
+                "/ev",
+                "\n",
+                "done",
+                {
+                    "#f": 1
+                }
+            ],
+            "baz": [
+                {
+                    "temp=": "var"
+                },
+                "ev",
+                {
+                    "VAR?": "var"
+                },
+                1,
+                "+",
+                {
+                    "temp=": "var",
+                    "re": true
+                },
+                "/ev",
+                "^bar var ",
+                "ev",
+                {
+                    "VAR?": "var"
+                },
+                "out",
+                "/ev",
+                "\n",
+                "ev",
+                {
+                    "^var": "var",
+                    "ci": -1
+                },
+                {
+                    "f()": "barref"
+                },
+                "pop",
+                "/ev",
+                "\n",
+                "ev",
+                "void",
+                "/ev",
+                "~ret",
+                {
+                    "#f": 1
+                }
+            ],
+            "barref": [
+                {
+                    "temp=": "var"
+                },
+                "ev",
+                {
+                    "VAR?": "var"
+                },
+                1,
+                "+",
+                {
+                    "temp=": "var",
+                    "re": true
+                },
+                "/ev",
+                "^barref var ",
+                "ev",
+                {
+                    "VAR?": "var"
+                },
+                "out",
+                "/ev",
+                "\n",
+                "ev",
+                "void",
+                "/ev",
+                "~ret",
+                {
+                    "#f": 1
+                }
+            ],
+            "#f": 1
+        }
+    ],
+    "listDefs": {}
+}

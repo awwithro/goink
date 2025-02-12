@@ -1,0 +1,29 @@
+VAR foo = 1
+
+foo {foo}
+->test
+
+== test ==
+~ temp x = 2
+~bar()
+test x {x}
+final foo {foo}
+-> DONE
+
+== function bar() ==
+~ temp x = 1
+bar x {x}
+~ baz(foo)
+~ barref(foo)
+
+~return
+
+== function baz(var)==
+~var +=1
+bar var {var}
+~return
+
+== function barref(ref var) ==
+~var +=1
+barref var {var}
+~return

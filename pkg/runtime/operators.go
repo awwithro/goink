@@ -195,7 +195,7 @@ func (s *Story) VisitOperator(op types.Operator) {
 			max := mustPopStack[types.Inty](s.evaluationStack)
 			min := mustPopStack[types.Inty](s.evaluationStack)
 			lst := mustPopStack[types.ListVal](s.evaluationStack)
-			log.Debugf("Range min: %d max: %d of list %d", min, max, lst.Count())
+			log.Debugf("Range min: %d max: %d of list %d", min.AsInt(), max.AsInt(), lst.Count())
 			s.evaluationStack.Push(lst.Range(min.AsInt(), max.AsInt()))
 		default:
 			s.Panicf("Missing ternary operation %T", op)

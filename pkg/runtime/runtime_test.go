@@ -94,20 +94,30 @@ four
 			expectedText:    "Pre: Smith,Jones\n\n\nPost: Carter,Braithwaite\n",
 		},
 		{
-			desc: "Sequence",
+			desc:            "Sequence",
 			inkJsonFilePath: "../../examples/seq.json",
-			expectedText: "\"Three!\"\n\"Two!\"\n\"One!\"\nThere was the white noise racket of an explosion.\nBut it was just static.\n",
+			expectedText:    "\"Three!\"\n\"Two!\"\n\"One!\"\nThere was the white noise racket of an explosion.\nBut it was just static.\n",
 		},
 		{
-			desc: "Tags",
+			desc:            "Tags",
 			inkJsonFilePath: "../../examples/tag.json",
-			expectedText: "Hello \n",
-			expectedTags: []types.Tag{types.Tag("world "), types.Tag("another")},
+			expectedText:    "Hello \n",
+			expectedTags:    []types.Tag{types.Tag("world "), types.Tag("another")},
 		},
 		{
-			desc: "Vars and ref Funcs",
+			desc:            "Vars and ref Funcs",
 			inkJsonFilePath: "../../examples/varsnfuncs.json",
-			expectedText: "foo 1\nbar x 1\nbar var 2\n\nbarref var 2\n\n\ntest x 2\nfinal foo 2\n",
+			expectedText:    "foo 1\nbar x 1\nbar var 2\n\nbarref var 2\n\n\ntest x 2\nfinal foo 2\n",
+		},
+		{
+			desc:            "Pass by Ref",
+			inkJsonFilePath: "../../examples/passbyref.json",
+			expectedText:    "foo 1\n\nfinal foo 2\n",
+		},
+		{
+			desc:            "Pass Temp var by Ref",
+			inkJsonFilePath: "../../examples/passtempvarbyref.json",
+			expectedText:    "initial x 1\nbar var 2\nbarref var 3\n\n\n",
 		},
 	}
 	parsed := map[string]types.Ink{}

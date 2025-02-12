@@ -20,6 +20,14 @@
                 {
                     "temp=": "list"
                 },
+                "^pop called with ",
+                "ev",
+                {
+                    "VAR?": "list"
+                },
+                "out",
+                "/ev",
+                "\n",
                 "ev",
                 {
                     "VAR?": "list"
@@ -29,6 +37,14 @@
                 {
                     "temp=": "x"
                 },
+                "\n",
+                "^min ",
+                "ev",
+                {
+                    "VAR?": "x"
+                },
+                "out",
+                "/ev",
                 "\n",
                 "ev",
                 {
@@ -43,6 +59,14 @@
                     "re": true
                 },
                 "/ev",
+                "^list without x ",
+                "ev",
+                {
+                    "VAR?": "x"
+                },
+                "out",
+                "/ev",
+                "\n",
                 "ev",
                 {
                     "VAR?": "x"
@@ -117,6 +141,26 @@
                 {
                     "temp=": "x"
                 },
+                "^reached ",
+                "ev",
+                {
+                    "VAR?": "x"
+                },
+                "out",
+                "/ev",
+                "\n",
+                "^result ",
+                "ev",
+                {
+                    "VAR?": "knowledgeState"
+                },
+                {
+                    "VAR?": "x"
+                },
+                "?",
+                "out",
+                "/ev",
+                "\n",
                 "ev",
                 {
                     "VAR?": "knowledgeState"
@@ -165,6 +209,14 @@
                 {
                     "temp=": "statesToSet"
                 },
+                "^reach called ",
+                "ev",
+                {
+                    "VAR?": "statesToSet"
+                },
+                "out",
+                "/ev",
+                "\n",
                 "ev",
                 {
                     "^var": "statesToSet",
@@ -192,12 +244,14 @@
                     {
                         "b": [
                             "\n",
+                            "^no x",
+                            "\n",
                             "ev",
                             false,
                             "/ev",
                             "~ret",
                             {
-                                "->": "reach.10"
+                                "->": "reach.16"
                             },
                             null
                         ]
@@ -220,6 +274,14 @@
                     {
                         "b": [
                             "\n",
+                            "^have not reached ",
+                            "ev",
+                            {
+                                "VAR?": "x"
+                            },
+                            "out",
+                            "/ev",
+                            "\n",
                             "ev",
                             {
                                 "VAR?": "x"
@@ -229,6 +291,14 @@
                             {
                                 "temp=": "chain"
                             },
+                            "\n",
+                            "^chain ",
+                            "ev",
+                            {
+                                "VAR?": "chain"
+                            },
+                            "out",
+                            "/ev",
                             "\n",
                             "ev",
                             {
@@ -247,6 +317,14 @@
                                 "temp=": "statesGained"
                             },
                             "\n",
+                            "^statesGained ",
+                            "ev",
+                            {
+                                "VAR?": "statesGained"
+                            },
+                            "out",
+                            "/ev",
+                            "\n",
                             "ev",
                             {
                                 "VAR?": "knowledgeState"
@@ -260,6 +338,14 @@
                                 "re": true
                             },
                             "/ev",
+                            "^knowledgeState ",
+                            "ev",
+                            {
+                                "VAR?": "knowledgeState"
+                            },
+                            "out",
+                            "/ev",
+                            "\n",
                             "ev",
                             {
                                 "VAR?": "statesToSet"
@@ -275,7 +361,7 @@
                             "/ev",
                             "~ret",
                             {
-                                "->": "reach.10"
+                                "->": "reach.16"
                             },
                             null
                         ]
@@ -287,6 +373,8 @@
                     },
                     {
                         "b": [
+                            "\n",
+                            "^else",
                             "\n",
                             "ev",
                             false,
@@ -301,7 +389,7 @@
                             "~ret",
                             "\n",
                             {
-                                "->": "reach.10"
+                                "->": "reach.16"
                             },
                             null
                         ]

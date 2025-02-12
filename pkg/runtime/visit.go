@@ -75,7 +75,7 @@ func (s *Story) VisitTmpVar(v types.TempVar) {
 	// If this is a reassignment to a variablePointer, dereference and set the target
 	if v.ReAssign {
 		val := s.state.GetVar(v.Name)
-		log.Debugf("reassignment of var: %T %v",val, val)
+		log.Debugf("reassignment of var: %T %v", val, val)
 		if ref, ok := val.(types.VariablePointer); ok {
 			s.setVariablePointerValue(ref, p)
 			return
@@ -84,9 +84,6 @@ func (s *Story) VisitTmpVar(v types.TempVar) {
 	switch val := p.(type) {
 	case types.DivertTarget:
 		s.state.SetVar(v.Name, types.Path(val))
-	//case types.VariablePointer:
-	//	final := s.getVariablePointerValue(val)
-	//	s.state.SetVar(v.Name, final)
 	default:
 		s.state.SetVar(v.Name, val)
 	}
@@ -319,20 +316,73 @@ func (s *Story) getVariablePointerValue(p types.VariablePointer) any {
 	// TODO: Use the ci of p to determine if global or local
 	var value any
 	if val, ok := s.state.globalVars[p.Name]; ok {
+		p.ContextIndex = 0
 		value = val
-	} else if val, ok = s.state.tmpVars[p.Name]; ok {
+	} else if p.ContextIndex == -1 {
+		val, ok = s.state.tmpVars[p.Name]
+		if ok {
+			value = val
+
+		} else {
+			if val, ok := s.findVarInStack(p.Name); ok {
+				value = val
+			} else {
+				s.Panicf("nil pointer, no var %s", p.Name)
+			}
+		}
+		// Could be a ref to a temp var lower in the call stack
+	} else if val, ok := s.findVarInStack(p.Name); ok {
 		value = val
 	} else {
 		s.Panicf("nil pointer, no var %s", p.Name)
 	}
 	log.Debugf("Pointer to %T: %v", value, value)
+
+	// Pointer to a pointer, keep dereffing it. First mark it as
+	// in the stack so we don't grab the same var if the name is the same
+	if ptr, ok := value.(types.VariablePointer); ok {
+		ptr.ContextIndex = 1
+		return s.getVariablePointerValue(ptr)
+	}
 	return value
 }
+
+// find the vars location and set it
 func (s *Story) setVariablePointerValue(p types.VariablePointer, val any) {
 	// TODO: Use the ci of p to determine if global or local
 	log.Debugf("Setting Pointer Var, %T: %v named %s", val, val, p.Name)
-	s.state.globalVars[p.Name] = val
+	if _, ok := s.state.globalVars[p.Name]; ok {
+		s.state.globalVars[p.Name] = val
+	} else if _, ok := s.state.tmpVars[p.Name]; ok {
+		s.state.globalVars[p.Name] = val
+	} else {
+		for _, state := range s.previousState.Values() {
+			vars := *state.tmpVars
+			_, found := vars[p.Name]
+			if found {
+				vars[p.Name] = val
+				return
+			}
+		}
+	}
+	//log.Panic()
 }
+
+func (s *Story) findVarInStack(name string) (val any, found bool) {
+	for _, state := range s.previousState.Values() {
+		vars := *state.tmpVars
+		val, found = vars[name]
+		if found {
+			break
+		}
+	}
+	// if p, ok := val.(types.VariablePointer); ok {
+	// 	return s.getVariablePointerValue(p), ok
+	// }
+
+	return val, found
+}
+
 func (s *Story) glue() {
 	val, _ := s.outputBuffer.Peek()
 	for val == "\n" {
@@ -406,11 +456,20 @@ func (s *Story) generateSequence() {
 }
 
 func (s *Story) pushTurnsSinceTarget() {
-	divert := mustPopStack[types.DivertTarget](s.evaluationStack)
-	target := s.ResolvePath(types.Path(divert))
+	pth := mustPopStack[any](s.evaluationStack)
+	var target Address
+	switch path := pth.(type) {
+	case types.DivertTarget:
+		target = s.ResolvePath(types.Path(path))
+	case types.Path:
+		target = s.ResolvePath(path)
+	default:
+		log.Panicf("cant use %T as path", pth)
+	}
 	turns := s.state.LastTurnVisited(target.C)
 	delta := s.state.TurnCount - turns
 	s.evaluationStack.Push(types.IntVal(delta))
+
 }
 
 func (s *Story) restoreState(oldState State) {
