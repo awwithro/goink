@@ -48,13 +48,14 @@ func (s *Story) VisitOperator(op types.Operator) {
 			case types.ListAll:
 				s.evaluationStack.Push(v.All())
 			case types.ListValue:
-				if v.Count() > 1 {
-					s.Panic("List value called on list with multiple entries")
+				var val types.IntVal
+				if v.Count() == 0 {
+					val = types.IntVal(0)
+				} else {
+					val = types.IntVal(v.ToSortedSlice()[v.Count()-1].Value)
 				}
-				val := types.IntVal(v.ToSlice()[0].Value)
 				s.evaluationStack.Push(val)
 				log.Debug("Pushed val ", val)
-				//log.Panic()
 			case types.ListInvert:
 				original := v.ToSortedSlice()[0].Parent
 				original.Set = original.Difference(v.Set)

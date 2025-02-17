@@ -43,12 +43,12 @@ func TestFullInkStory(t *testing.T) {
 			inkJsonFilePath: "../../examples/fallback.json",
 			choices:         []int{0, 0},
 			choiceCounts:    []int{2, 1},
-			expectedText:    "four test\n\ntwo test\n\nthree ",
+			expectedText:    "four test\ntwo test\nthree",
 		},
 		{
 			desc:            "External Function Fallback",
 			inkJsonFilePath: "../../examples/externalfunc.json",
-			expectedText:    "Calling Func Internal Hello world\n\n",
+			expectedText:    "Calling Func Internal Hello world\n",
 		},
 		{
 			desc:            "External Function",
@@ -81,7 +81,7 @@ four
 		{
 			desc:            "List All Func",
 			inkJsonFilePath: "../../examples/all.json",
-			expectedText:    "a,f\n\na,e,b,f,c,g,d,h,e,i,j\n",
+			expectedText:    "a,f\na,e,b,f,c,g,d,h,e,i,j\n",
 		},
 		{
 			desc:            "Range Func",
@@ -91,7 +91,7 @@ four
 		{
 			desc:            "List Invert Func",
 			inkJsonFilePath: "../../examples/invert.json",
-			expectedText:    "Pre: Smith,Jones\n\n\nPost: Carter,Braithwaite\n",
+			expectedText:    "Pre: Smith,Jones\nPost: Carter,Braithwaite\n",
 		},
 		{
 			desc:            "Sequence",
@@ -101,23 +101,23 @@ four
 		{
 			desc:            "Tags",
 			inkJsonFilePath: "../../examples/tag.json",
-			expectedText:    "Hello \n",
+			expectedText:    "Hello\n",
 			expectedTags:    []types.Tag{types.Tag("world "), types.Tag("another")},
 		},
 		{
 			desc:            "Vars and ref Funcs",
 			inkJsonFilePath: "../../examples/varsnfuncs.json",
-			expectedText:    "foo 1\nbar x 1\nbar var 2\n\nbarref var 2\n\n\ntest x 2\nfinal foo 2\n",
+			expectedText:    "foo 1\nbar x 1\nbar var 2\nbarref var 2\ntest x 2\nfinal foo 2\n",
 		},
 		{
 			desc:            "Pass by Ref",
 			inkJsonFilePath: "../../examples/passbyref.json",
-			expectedText:    "foo 1\n\nfinal foo 2\n",
+			expectedText:    "foo 1\nfinal foo 2\n",
 		},
 		{
 			desc:            "Pass Temp var by Ref",
 			inkJsonFilePath: "../../examples/passtempvarbyref.json",
-			expectedText:    "initial x 1\nbar var 2\nbarref var 3\n\n\n",
+			expectedText:    "initial x 1\nbar var 2\nbarref var 3\n",
 		},
 	}
 	parsed := map[string]types.Ink{}

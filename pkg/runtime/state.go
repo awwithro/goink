@@ -1,6 +1,8 @@
 package runtime
 
 import (
+	"strings"
+
 	"github.com/awwithro/goink/pkg/parser/types"
 	log "github.com/sirupsen/logrus"
 )
@@ -107,13 +109,47 @@ func (s *StoryState) CanContinue() bool {
 }
 
 func (s *StoryState) GetTextAndTags() (string, []types.Tag) {
-	text := s.text
+	text := CleanOutput(s.text)
 	tags := s.currentTags
 	s.text = ""
 	s.currentTags = []types.Tag{}
 	return text, tags
 }
 
-func (s *StoryState)LastTurnVisited(c *types.Container) int{
+func (s *StoryState) LastTurnVisited(c *types.Container) int {
 	return s.lastTurn[c]
+}
+
+func CleanOutput(str string) string {
+	sb := strings.Builder{}
+	currentWhitespaceStart := -1
+	startOfLine := 0
+
+	for i := 0; i < len(str); i++ {
+		c := string(str[i])
+		isInlineWhitespace := (c == " " || c == "\t")
+
+		if isInlineWhitespace && currentWhitespaceStart == -1 {
+			currentWhitespaceStart = i
+		}
+		if !isInlineWhitespace {
+			if c == "\n" && i != len(str)-1 && string(str[i+1])=="\n"{
+				continue
+			}
+			if c != "\n" && currentWhitespaceStart > 0 && currentWhitespaceStart != startOfLine {
+				sb.WriteString(" ")
+			}
+			currentWhitespaceStart = -1
+		}
+
+		if c == "\n" {
+			startOfLine = i + 1
+		}
+		if !isInlineWhitespace {
+			sb.WriteString(c)
+		}
+
+	}
+
+	return sb.String()
 }

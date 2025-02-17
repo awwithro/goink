@@ -39,3 +39,11 @@ references a list, fils it with the defined BedKnowledge listDef and assigns it 
 * LIST_RANDOM should return a list with the random item not a random item.
 * Really all list functions should operate on Lists and not ListItems
 * List_Range can operate on all lists, i'm guessing use the int vals in the range func?
+* Updates needed to make threads work
+    * Need another stack for threads to push/pop from
+    * Need to modify DONE handling so we pop a thread if we are in one and then continue evaluation
+    * Currently we hit the end of the thread and end evaluation meaning that only one thread will be evaluated at a time
+    * Thread contains:
+        * TempVars
+        * Mode? Could work the same as i have it by saving the mode when returning
+        * Pointer to location
